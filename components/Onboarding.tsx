@@ -44,7 +44,7 @@ export function Onboarding({ savedName, onStart, onResume }: { savedName?: strin
           <label>Founder name<input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Alex Morgan" autoFocus /></label>
           <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="founder@company.com" /></label>
           <button className="primary-button wide" disabled={name.trim().length < 2 || !email.includes("@")} onClick={() => setStep("background")}>Choose your background <span>→</span></button>
-          <small>Your progress is saved automatically on this device and synced when online.</small>
+          <small>Your progress is saved automatically on this device and safely upgraded as the game evolves.</small>
         </section>
       </main>
     );

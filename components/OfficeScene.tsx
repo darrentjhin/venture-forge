@@ -32,9 +32,9 @@ export function OfficeScene({ state, onSelect, immersive = false, onNavigate }: 
   const [zoom, setZoom] = useState(1);
   const capacity = OFFICE_CONFIG[state.office].capacity;
   const displayPeople = useMemo(() => {
-    const founder: Employee = { id: "founder", name: state.founderName, role: "Founder & CEO", skill: 84, morale: state.morale, weeklySalary: 0, color: "#e7ff6b" };
+    const founder: Employee = { id: "founder", name: state.founderName, role: "Founder & CEO", skills: { engineering: state.background === "Engineering" ? 88 : 52, product: 72, design: state.background === "Design" ? 88 : 44, sales: state.background === "Sales" ? 88 : 42, marketing: 48, customerSuccess: 46, operations: state.background === "Business" ? 86 : 48, leadership: 64 }, morale: state.morale, workload: 100 - state.founderCapacity, weeklySalary: 0, color: "#e7ff6b", activity: state.founderCapacity < 25 ? "Late work" : state.companyFormed ? "Working" : "Working", location: "Desk", destination: null, department: "Founder" };
     return [founder, ...state.employees];
-  }, [state.employees, state.founderName, state.morale]);
+  }, [state.background, state.employees, state.founderCapacity, state.founderName, state.morale, state.companyFormed]);
 
   return (
     <section className={`office-card ${immersive ? "immersive-office" : ""}`}>
@@ -68,6 +68,7 @@ export function OfficeScene({ state, onSelect, immersive = false, onNavigate }: 
             <div className="coffee-bar"><span>COFFEE</span></div>
             {state.office === "Studio" && <div className="meeting-room"><span>WEEK {state.week} PLAN</span><i /><i /><i /></div>}
             {displayPeople.map((employee, index) => <Person key={employee.id} employee={employee} index={index} morale={state.morale} onSelect={() => onSelect(employee)} />)}
+            {state.officeState.visitorType && <div className="office-visitor"><i /><span>{state.officeState.visitorType}</span></div>}
           </div>
         </div>
         <div className="office-status">
@@ -77,7 +78,7 @@ export function OfficeScene({ state, onSelect, immersive = false, onNavigate }: 
         </div>
         {immersive && onNavigate && <div className="world-hotspots" aria-label="Office stations">
           <button className="hotspot hotspot-desk" onClick={() => onNavigate(state.companyFormed ? "product" : "overview")}><i>01</i><strong>{state.companyFormed ? "Build product" : "Founder desk"}</strong><span>{state.companyFormed ? `${state.productProgress}% complete` : "Hustle & research"}</span></button>
-          {state.companyFormed && <button className="hotspot hotspot-board" onClick={() => onNavigate("growth")}><i>02</i><strong>Customers</strong><span>{state.salesPipeline} active leads</span></button>}
+          {state.companyFormed && <button className="hotspot hotspot-board" onClick={() => onNavigate("growth")}><i>02</i><strong>Sales room</strong><span>{state.opportunities.filter((opportunity) => !["Won", "Lost"].includes(opportunity.stage)).length} active deals</span></button>}
           {state.companyFormed && <button className="hotspot hotspot-team" onClick={() => onNavigate("team")}><i>03</i><strong>Team</strong><span>{state.employees.length + 1} people</span></button>}
           {state.companyFormed && <button className="hotspot hotspot-finance" onClick={() => onNavigate("finance")}><i>04</i><strong>Finance</strong><span>Open the books</span></button>}
           <button className="hotspot hotspot-history" onClick={() => onNavigate("history")}><i>{state.companyFormed ? "05" : "02"}</i><strong>Journal</strong><span>{state.history.length} moments saved</span></button>
