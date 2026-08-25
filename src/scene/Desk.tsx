@@ -1,0 +1,3 @@
+export function Desk({ x, y, width = 260, dark = false }: { x: number; y: number; width?: number; dark?: boolean }) {
+  return <g transform={`translate(${x} ${y})`}><rect x={-width / 2} y="-18" width={width} height="20" rx="4" fill={dark ? "#756128" : "#c9a227"} stroke="#22201d" strokeWidth="5"/><path d={`M${-width / 2 + 20} 2v105M${width / 2 - 20} 2v105`} stroke="#4a5259" strokeWidth="10"/><rect x="-40" y="-72" width="80" height="52" rx="3" fill="#4a5259" stroke="#22201d" strokeWidth="5"/><rect x="-30" y="-63" width="60" height="34" fill="#b9d4d1" opacity={dark ? .2 : .75}/><path d="M0 -20v14M-24 -6h48" stroke="#22201d" strokeWidth="5"/></g>;
+}

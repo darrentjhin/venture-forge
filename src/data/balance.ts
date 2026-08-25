@@ -1,0 +1,17 @@
+export const BALANCE = {
+  startingCash: 2000,
+  totalWeeks: 104,
+  baseFocus: 5,
+  founderWeeklyLiving: 600,
+  toolingWeekly: 50,
+  infraPerCustomerWeekly: 2,
+  workspaceWeekly: { apartment: 0, kitchen: 0, coworking: 300, office: 1500, floor: 3200, hq: 6400 },
+  seatCostWeekly: 120,
+  salaryRange: { junior: [900, 1400], mid: [1500, 2100], senior: [2200, 3200] },
+  baseChurnWeekly: 0.02,
+  convictionDecayWeekly: 2,
+  techDebtPerShippedFeature: 8,
+  techDebtDecayPerHardenAction: 25,
+  pivotMoraleHit: 15,
+  overclaimThresholds: [10, 25, 45],
+} as const;
