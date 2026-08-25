@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { OFFICE_CONFIG } from "@/lib/game/config";
-import type { Employee, GameState } from "@/lib/game/types";
+import type { Employee, GameState, GameView } from "@/lib/game/types";
 
 const POSITIONS = [
   [27, 31], [42, 29], [59, 35], [67, 53], [46, 58], [29, 61], [76, 28], [58, 70], [20, 48], [77, 68], [37, 72], [52, 45],
@@ -27,7 +27,7 @@ function Person({ employee, index, morale, onSelect }: { employee: Employee; ind
   );
 }
 
-export function OfficeScene({ state, onSelect }: { state: GameState; onSelect: (employee: Employee | null) => void }) {
+export function OfficeScene({ state, onSelect, immersive = false, onNavigate }: { state: GameState; onSelect: (employee: Employee | null) => void; immersive?: boolean; onNavigate?: (view: GameView) => void }) {
   const [rotation, setRotation] = useState(-45);
   const [zoom, setZoom] = useState(1);
   const capacity = OFFICE_CONFIG[state.office].capacity;
@@ -37,8 +37,8 @@ export function OfficeScene({ state, onSelect }: { state: GameState; onSelect: (
   }, [state.employees, state.founderName, state.morale]);
 
   return (
-    <section className="office-card">
-      <div className="office-toolbar">
+    <section className={`office-card ${immersive ? "immersive-office" : ""}`}>
+      {!immersive && <div className="office-toolbar">
         <div>
           <span className="eyebrow live-dot">LIVE COMPANY</span>
           <h2>{state.office === "Apartment" ? `${state.founderName.split(" ")[0]}'s apartment` : OFFICE_CONFIG[state.office].label}</h2>
@@ -49,7 +49,7 @@ export function OfficeScene({ state, onSelect }: { state: GameState; onSelect: (
           <button onClick={() => setZoom((value) => Math.max(.72, value - .12))} aria-label="Zoom out">−</button>
           <button onClick={() => setZoom((value) => Math.min(1.32, value + .12))} aria-label="Zoom in">+</button>
         </div>
-      </div>
+      </div>}
 
       <div className={`office-viewport office-${state.office.toLowerCase()}`}>
         <div className="office-world" style={{ transform: `scale(${zoom}) rotateX(58deg) rotateZ(${rotation}deg)` }}>
@@ -75,6 +75,13 @@ export function OfficeScene({ state, onSelect }: { state: GameState; onSelect: (
           <span>{state.morale >= 70 ? "Focused energy" : state.morale >= 45 ? "Team feels stretched" : "Burnout risk"}</span>
           <span>{displayPeople.length}/{capacity} seats</span>
         </div>
+        {immersive && onNavigate && <div className="world-hotspots" aria-label="Office stations">
+          <button className="hotspot hotspot-desk" onClick={() => onNavigate(state.companyFormed ? "product" : "overview")}><i>01</i><strong>{state.companyFormed ? "Build product" : "Founder desk"}</strong><span>{state.companyFormed ? `${state.productProgress}% complete` : "Hustle & research"}</span></button>
+          {state.companyFormed && <button className="hotspot hotspot-board" onClick={() => onNavigate("growth")}><i>02</i><strong>Customers</strong><span>{state.salesPipeline} active leads</span></button>}
+          {state.companyFormed && <button className="hotspot hotspot-team" onClick={() => onNavigate("team")}><i>03</i><strong>Team</strong><span>{state.employees.length + 1} people</span></button>}
+          {state.companyFormed && <button className="hotspot hotspot-finance" onClick={() => onNavigate("finance")}><i>04</i><strong>Finance</strong><span>Open the books</span></button>}
+          <button className="hotspot hotspot-history" onClick={() => onNavigate("history")}><i>{state.companyFormed ? "05" : "02"}</i><strong>Journal</strong><span>{state.history.length} moments saved</span></button>
+        </div>}
       </div>
     </section>
   );

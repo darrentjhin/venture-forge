@@ -125,6 +125,7 @@ export default function GameApp() {
   const [state, setState] = useState<GameState | null>(null);
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<GameView>("overview");
+  const [panelOpen, setPanelOpen] = useState(false);
   const [summary, setSummary] = useState<WeekResult["summary"] | null>(null);
   const [inspected, setInspected] = useState<Employee | null>(null);
 
@@ -134,10 +135,6 @@ export default function GameApp() {
       if (raw) {
         const local = JSON.parse(raw) as GameState;
         setState(local);
-        fetch(`/api/save?id=${encodeURIComponent(local.saveId)}`)
-          .then((response) => response.ok ? response.json() as Promise<{ state: GameState }> : null)
-          .then((result) => { if (result?.state?.saveId === local.saveId) setState(result.state); })
-          .catch(() => undefined);
       }
     } catch { /* start clean */ }
     setReady(true);
@@ -145,10 +142,7 @@ export default function GameApp() {
   useEffect(() => {
     if (!ready || !state) return;
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-    const timer = window.setTimeout(() => {
-      fetch("/api/save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ saveId: state.saveId, state }) }).catch(() => undefined);
-    }, 700);
-    return () => window.clearTimeout(timer);
+    return undefined;
   }, [state, ready]);
 
   const advance = useCallback(() => {
@@ -169,34 +163,54 @@ export default function GameApp() {
 
   const savedName = state?.founderName;
   if (!ready) return <main className="loading-screen"><span>V</span><p>Preparing your founder desk…</p></main>;
-  if (!state || !state.loggedIn) return <Onboarding savedName={savedName} onResume={state ? () => setState({ ...state, loggedIn: true }) : undefined} onStart={(data) => { setState(createGame(data)); setView("overview"); }} />;
+  if (!state || !state.loggedIn) return <Onboarding savedName={savedName} onResume={state ? () => { setState({ ...state, loggedIn: true }); setPanelOpen(false); } : undefined} onStart={(data) => { setState(createGame(data)); setView("overview"); setPanelOpen(false); }} />;
 
-  const nav: Array<{ id: GameView; label: string; icon: string }> = state.companyFormed ? [
-    { id: "overview", label: "Overview", icon: "◫" }, { id: "office", label: "3D Office", icon: "◇" }, { id: "product", label: "Product", icon: "◉" }, { id: "growth", label: "Customers", icon: "↗" }, { id: "team", label: "Team", icon: "♙" }, { id: "finance", label: "Finance", icon: "$" }, { id: "history", label: "History", icon: "≡" },
-  ] : [{ id: "overview", label: "Founder HQ", icon: "◫" }, { id: "office", label: "Apartment", icon: "◇" }, { id: "history", label: "History", icon: "≡" }];
-  const companyInitial = state.companyFormed ? state.companyName.charAt(0) : state.founderName.charAt(0);
+  const openStation = (nextView: GameView) => { setView(nextView); setPanelOpen(true); };
+  const runway = state.companyFormed ? calculateRunway(state) : null;
+  const mission = !state.companyFormed
+    ? state.ideaResearch < 50 ? "Interview customers and validate Relaydesk" : "Save $1,800 and form the company"
+    : !state.productLaunched ? `Finish the MVP · ${state.productProgress}% complete`
+    : state.customers < 10 ? `Win the first 10 customers · ${state.customers}/10` : "Grow without losing control of burn";
 
   return (
-    <main className="game-shell">
-      <aside className="sidebar">
-        <div className="brand"><div className="brand-mark">V</div><span>VENTURE<br />FORGE</span></div>
-        <div className="company-switcher"><span className="company-logo">{companyInitial}</span><div><small>{state.companyFormed ? "COMPANY 01" : "FOUNDER"}</small><strong>{state.companyFormed ? state.companyName.replace(", Inc.", "") : state.founderName}</strong></div><b>⌄</b></div>
-        <nav>{nav.map((item) => <button className={view === item.id ? "active" : ""} key={item.id} onClick={() => setView(item.id)}><span>{item.icon}</span>{item.label}{item.id === "office" && <i>LIVE</i>}</button>)}</nav>
-        <div className="sidebar-bottom"><div className="founder-chip"><span>{state.founderName.charAt(0)}</span><div><strong>{state.founderName}</strong><small>{state.background} founder</small></div></div><button className="logout" onClick={() => setState({ ...state, loggedIn: false })}>Save & exit</button></div>
-      </aside>
-      <section className="main-stage">
-        <header className="topbar"><div><span className="week-pill">WEEK {state.week}</span><span className="date-label">{state.year} · Q{Math.min(4, Math.ceil(state.week / 13))}</span></div><div className="top-actions"><span className="save-state">● SAVED</span>{state.companyFormed && <span className="cash-quick">{money(state.companyCash)}<small>COMPANY CASH</small></span>}<button className="advance-button" disabled={!!state.pendingEvent || state.gameOver} onClick={advance}>Advance week <span>→</span></button></div></header>
-        <div className="stage-content">
+    <main className="world-shell">
+      <OfficeScene state={state} onSelect={setInspected} immersive onNavigate={openStation} />
+
+      <header className="world-topbar">
+        <div className="world-brand"><div className="brand-mark">V</div><div><strong>VENTURE FORGE</strong><span>{state.companyFormed ? state.companyName : `${state.founderName}'s apartment`}</span></div></div>
+        <div className="world-week"><span>WEEK</span><strong>{String(state.week).padStart(2, "0")}</strong><small>{state.year} · Q{Math.min(4, Math.ceil(state.week / 13))}</small></div>
+        <button className="advance-button world-advance" disabled={!!state.pendingEvent || state.gameOver} onClick={advance}>End week <span>→</span></button>
+      </header>
+
+      <section className="world-stats">
+        <article><span>{state.companyFormed ? "COMPANY CASH" : "PERSONAL CASH"}</span><strong>{money(state.companyFormed ? state.companyCash : state.personalCash)}</strong></article>
+        <article><span>{state.companyFormed ? "CUSTOMERS" : "ENERGY"}</span><strong>{state.companyFormed ? state.customers : `${state.founderEnergy}%`}</strong></article>
+        <article><span>{state.companyFormed ? "RUNWAY" : "NETWORK"}</span><strong>{state.companyFormed ? runway === Infinity ? "∞" : `${runway?.toFixed(1)} mo` : `${state.network}`}</strong></article>
+      </section>
+
+      <section className="world-mission">
+        <span className="mission-kicker">CURRENT MISSION</span>
+        <strong>{mission}</strong>
+        <button onClick={() => openStation("overview")}>{state.companyFormed ? "Open company brief" : "Sit down and work"} <b>→</b></button>
+      </section>
+
+      <nav className="world-utility">
+        <button onClick={() => openStation("history")}><span>☰</span>Company journal</button>
+        <button onClick={() => setState({ ...state, loggedIn: false })}><span>↙</span>Save & leave</button>
+      </nav>
+
+      {panelOpen && <div className="management-layer" role="dialog" aria-modal="true">
+        <button className="drawer-close" onClick={() => setPanelOpen(false)} aria-label="Return to office">× <span>RETURN TO OFFICE</span></button>
+        <div className="management-drawer">
           {!state.companyFormed && view === "overview" && <FounderPhase state={state} setState={setState} advance={advance} />}
-          {state.companyFormed && view === "overview" && <CompanyOverview state={state} setView={setView} />}
-          {view === "office" && <div className="content-view office-view"><OfficeScene state={state} onSelect={setInspected} /><div className="office-caption"><span>THE LIVING COMPANY</span><p>The scene reflects your real team size, office capacity, and morale. People move autonomously; you manage the business.</p></div></div>}
+          {state.companyFormed && view === "overview" && <CompanyOverview state={state} setView={openStation} />}
           {state.companyFormed && view === "product" && <ProductView state={state} setState={setState} />}
           {state.companyFormed && view === "growth" && <GrowthView state={state} setState={setState} />}
           {state.companyFormed && view === "team" && <TeamView state={state} setState={setState} />}
           {state.companyFormed && view === "finance" && <FinanceView state={state} />}
           {view === "history" && <HistoryView state={state} />}
         </div>
-      </section>
+      </div>}
 
       {summary && <div className="modal-backdrop" role="dialog" aria-modal="true"><section className="summary-modal"><button className="modal-close" onClick={() => setSummary(null)}>×</button><span className="eyebrow">WEEK {state.week} CLOSED</span><h2>{summary.net >= 0 ? "Momentum, with discipline." : "Runway bought progress."}</h2><div className="summary-grid"><div><span>Revenue</span><strong className="positive">+{money(summary.revenue)}</strong></div><div><span>Expenses</span><strong className="negative">−{money(summary.expenses)}</strong></div><div><span>Net cash change</span><strong>{summary.net >= 0 ? "+" : ""}{money(summary.net)}</strong></div><div><span>New customers</span><strong>+{summary.newCustomers}</strong></div><div><span>Customers lost</span><strong>−{summary.churned}</strong></div><div><span>Product progress</span><strong>+{summary.productGain}%</strong></div></div><button className="primary-button wide" onClick={() => setSummary(null)}>Enter week {state.week}</button></section></div>}
       {state.pendingEvent && <div className="modal-backdrop event-backdrop" role="dialog" aria-modal="true"><section className="event-modal"><span className="eyebrow">{state.pendingEvent.eyebrow} / WEEK {state.week}</span><h2>{state.pendingEvent.title}</h2><p>{state.pendingEvent.body}</p><div className="event-choices">{state.pendingEvent.choices.map((choice, index) => <button key={choice.label} onClick={() => resolveEvent(index)}><strong>{choice.label}</strong><span>{choice.detail}</span><b>→</b></button>)}</div></section></div>}
