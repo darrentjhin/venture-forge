@@ -1,4 +1,5 @@
 import { INK, INK_SOFT, HAIR, PANTS, SHIRTS, SKINS, type Palette } from "./palette";
+import { companyShortName } from "../../data/companyNames";
 import { TILE, WALL_H, type Point } from "./geometry";
 
 /* ── pixel helpers ──────────────────────────────────────────── */
@@ -51,9 +52,42 @@ export function drawRoomShell(ctx: CanvasRenderingContext2D, cols: number, rows:
     }
   }
 
+  // Ambient occlusion: light falls off in the corners, so the floor darkens
+  // against the back wall and along both side walls. Without this the room
+  // reads as a flat sheet with furniture stuck on top.
+  for (let i = 0; i < 14; i += 1) {
+    shade(ctx, origin.x, floorTop + i, w, 1, "#1a0f08", .16 * (1 - i / 14));
+  }
+  for (let i = 0; i < 18; i += 1) {
+    const a = .18 * (1 - i / 18);
+    shade(ctx, origin.x + i, floorTop, 1, rows * TILE, "#1a0f08", a);
+    shade(ctx, origin.x + w - 1 - i, floorTop, 1, rows * TILE, "#1a0f08", a);
+  }
+
   // Side edges so the room reads as a box.
   px(ctx, origin.x - 4, floorTop - WALL_H, 4, WALL_H + rows * TILE, p.floorEdge);
   px(ctx, origin.x + w, floorTop - WALL_H, 4, WALL_H + rows * TILE, p.floorEdge);
+}
+
+/**
+ * Vignette over the finished frame. The room is a lit box in a dark building;
+ * without this it floats on flat black and the edges feel unfinished.
+ */
+export function drawVignette(ctx: CanvasRenderingContext2D, w: number, h: number, strength: number) {
+  const g = ctx.createRadialGradient(w / 2, h * .46, Math.min(w, h) * .28, w / 2, h * .5, Math.max(w, h) * .72);
+  g.addColorStop(0, "rgba(8,14,20,0)");
+  g.addColorStop(1, `rgba(8,14,20,${strength})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/** Soft warm pool cast by a lit screen or lamp onto the surface below it. */
+export function glowPool(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, color: string, alpha: number) {
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  g.addColorStop(0, color.replace(")", `,${alpha})`).replace("rgb(", "rgba("));
+  g.addColorStop(1, color.replace(")", ",0)").replace("rgb(", "rgba("));
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
 }
 
 /**
@@ -61,7 +95,7 @@ export function drawRoomShell(ctx: CanvasRenderingContext2D, cols: number, rows:
  * than at fixed offsets, so windows and frames can never overlap each other or
  * the door in the first tile.
  */
-export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origin: Point, p: Palette, mood: number, week: number) {
+export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origin: Point, p: Palette, mood: number, week: number, reserved: { x: number; w: number }[] = []) {
   const top = origin.y - WALL_H;
   const night = mood >= 4;
 
@@ -118,46 +152,68 @@ export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origi
     { w: 24, draw: framed("#3a5f4a", "#c4a24e", 24, 20) },
   ];
 
-  // The door occupies the first tile, so decor starts after it.
+  // The door owns the first tile; wall-mounted fixtures own their own spans.
+  // Decor is placed into the gaps left over, so nothing can overlap.
   const left = origin.x + TILE + 8;
   const right = origin.x + cols * TILE - 8;
-  const available = right - left;
 
-  const chosen: typeof catalogue = [];
-  let used = 0;
-  for (const item of catalogue) {
-    const gap = chosen.length ? 14 : 0;
-    if (used + gap + item.w > available) continue;
-    chosen.push(item);
-    used += gap + item.w;
+  const blocks = [...reserved].sort((a, b) => a.x - b.x);
+  const gaps: { x: number; w: number }[] = [];
+  let cursor = left;
+  for (const block of blocks) {
+    if (block.x - cursor > 24) gaps.push({ x: cursor, w: block.x - cursor - 10 });
+    cursor = Math.max(cursor, block.x + block.w + 10);
   }
-  if (!chosen.length) return;
+  if (right - cursor > 24) gaps.push({ x: cursor, w: right - cursor });
 
-  const spare = available - used;
-  const step = chosen.length > 1 ? spare / (chosen.length - 1) : 0;
-  let x = left;
-  chosen.forEach((item, index) => {
-    item.draw(Math.round(x));
-    x += item.w + 14 + (index < chosen.length - 1 ? step : 0);
-  });
+  // Fill each gap left to right, centring what fits.
+  let next = 0;
+  for (const gap of gaps) {
+    const picked: typeof catalogue = [];
+    let used = 0;
+    while (next < catalogue.length) {
+      const item = catalogue[next];
+      const need = used + item.w + (picked.length ? 14 : 0);
+      if (need > gap.w) break;
+      picked.push(item);
+      used = need;
+      next += 1;
+    }
+    if (!picked.length) continue;
+    let x = gap.x + (gap.w - used) / 2;
+    for (const item of picked) {
+      item.draw(Math.round(x));
+      x += item.w + 14;
+    }
+  }
 }
 
 /* ── furniture ──────────────────────────────────────────────── */
 
 export type FurnitureKind =
   | "desk" | "chair" | "plant" | "meetingTable" | "sofa" | "counter"
-  | "server" | "bed" | "rug" | "cooler" | "shelf" | "lamp" | "bin";
+  | "server" | "bed" | "rug" | "cooler" | "shelf" | "lamp" | "bin"
+  | "boxes" | "printer" | "wardrobe" | "beanbag" | "books" | "easel";
 
 export function drawFurniture(ctx: CanvasRenderingContext2D, kind: FurnitureKind, sx: number, sy: number, variant: number, p: Palette) {
   switch (kind) {
     case "rug":
-      px(ctx, sx + 1, sy + 3, TILE - 2, TILE - 6, "#7a4a6e");
-      px(ctx, sx + 4, sy + 6, TILE - 8, TILE - 12, "#9c6188");
-      px(ctx, sx + 8, sy + 10, TILE - 16, TILE - 20, "#c07fa8");
+      // Full-bleed so neighbouring rug tiles merge into one carpet, with a
+      // woven motif instead of a border.
+      px(ctx, sx, sy, TILE, TILE, "#7c5a72");
+      for (let i = 0; i < TILE; i += 8) {
+        px(ctx, sx, sy + i, TILE, 1, "#8b6780");
+        px(ctx, sx + i, sy, 1, TILE, "#8b6780");
+      }
+      px(ctx, sx + 12, sy + 12, 8, 8, "#a67c99");
+      px(ctx, sx + 14, sy + 14, 4, 4, "#6d4d64");
       break;
 
     case "desk": {
-      shade(ctx, sx + 2, sy + 26, TILE - 4, 4, INK, .22);
+      shade(ctx, sx + 1, sy + 24, TILE - 2, 7, "#160d06", .3);
+      shade(ctx, sx + 3, sy + 28, TILE - 6, 4, "#160d06", .22);
+      // The screen lights the desk it stands on.
+      glowPool(ctx, sx + 16, sy + 14, 22, "rgb(120,220,215)", .16);
       // Desk surface first, then the monitor standing on it.
       block(ctx, sx + 1, sy + 10, TILE - 2, 16, "#8a5733");
       px(ctx, sx + 1, sy + 10, TILE - 2, 3, "#a86c40");
@@ -252,6 +308,59 @@ export function drawFurniture(ctx: CanvasRenderingContext2D, kind: FurnitureKind
       px(ctx, sx + 15, sy - 4, 3, 28, "#4a5268");
       block(ctx, sx + 8, sy - 16, 17, 10, "#f0b45a");
       px(ctx, sx + 10, sy - 6, 13, 2, "#ffd88a");
+      break;
+
+    case "boxes":
+      shade(ctx, sx + 3, sy + 22, TILE - 6, 6, "#160d06", .28);
+      block(ctx, sx + 4, sy + 8, 16, 16, "#b98a52");
+      px(ctx, sx + 4, sy + 14, 16, 2, "#8d6537");
+      px(ctx, sx + 11, sy + 8, 2, 16, "#d8ad74");
+      block(ctx, sx + 13, sy - 2, 14, 13, "#c9975c");
+      px(ctx, sx + 13, sy + 3, 14, 2, "#96703f");
+      px(ctx, sx + 19, sy - 2, 2, 13, "#e0bb83");
+      break;
+
+    case "printer":
+      shade(ctx, sx + 4, sy + 22, TILE - 8, 5, "#160d06", .28);
+      block(ctx, sx + 5, sy + 6, 22, 17, "#8f98a8");
+      px(ctx, sx + 5, sy + 6, 22, 3, "#aab3c2");
+      px(ctx, sx + 8, sy + 12, 16, 4, "#2b3242");
+      px(ctx, sx + 9, sy + 1, 14, 6, "#f2f4f7");     // sheet in the tray
+      px(ctx, sx + 22, sy + 9, 3, 2, "#4fc46a");
+      break;
+
+    case "wardrobe":
+      shade(ctx, sx + 3, sy + 24, TILE - 6, 5, "#160d06", .3);
+      block(ctx, sx + 3, sy - 14, TILE - 6, 39, "#6f4a2c");
+      px(ctx, sx + 5, sy - 12, 10, 35, "#875c37");
+      px(ctx, sx + 17, sy - 12, 10, 35, "#875c37");
+      px(ctx, sx + 14, sy + 2, 2, 5, "#e0c08a");
+      px(ctx, sx + 17, sy + 2, 2, 5, "#e0c08a");
+      break;
+
+    case "beanbag":
+      shade(ctx, sx + 4, sy + 22, TILE - 8, 5, "#160d06", .26);
+      block(ctx, sx + 5, sy + 8, 22, 15, variant % 2 ? "#c85f7a" : "#5f8fc8");
+      px(ctx, sx + 8, sy + 6, 16, 4, variant % 2 ? "#e0768f" : "#79a6d8");
+      px(ctx, sx + 9, sy + 12, 8, 3, variant % 2 ? "#e88ba0" : "#93bae4");
+      break;
+
+    case "books":
+      shade(ctx, sx + 8, sy + 21, 16, 4, "#160d06", .24);
+      px(ctx, sx + 9, sy + 16, 15, 5, "#c1544a");
+      px(ctx, sx + 10, sy + 11, 13, 5, "#4a7fb5");
+      px(ctx, sx + 9, sy + 6, 14, 5, "#d8a94e");
+      px(ctx, sx + 11, sy + 2, 10, 4, "#5aa06a");
+      break;
+
+    case "easel":
+      shade(ctx, sx + 6, sy + 24, 20, 4, "#160d06", .24);
+      px(ctx, sx + 9, sy + 8, 2, 18, "#7a5a38");
+      px(ctx, sx + 21, sy + 8, 2, 18, "#7a5a38");
+      block(ctx, sx + 4, sy - 10, 24, 20, "#f4f1e6");
+      px(ctx, sx + 7, sy - 6, 13, 2, "#3fa0b0");
+      px(ctx, sx + 7, sy - 2, 17, 2, "#3fa0b0");
+      px(ctx, sx + 7, sy + 2, 9, 2, "#d6483c");
       break;
 
     case "plant":
@@ -356,7 +465,7 @@ export type Facing = "down" | "up" | "left" | "right";
 export interface CharacterSpec {
   skin: number; hair: number; shirt: number; pants: number;
   glasses: boolean; hairStyle: number;
-  facing: Facing; walking: boolean; slumped: boolean; phase: number;
+  facing: Facing; walking: boolean; slumped: boolean; seated?: boolean; phase: number;
   motion?: string;
 }
 
@@ -377,20 +486,26 @@ export function drawCharacter(ctx: CanvasRenderingContext2D, x: number, y: numbe
   const back = c.facing === "up";
 
   const cx = Math.round(x);
-  const feet = Math.round(y) + droop;
+  const seatDrop = c.seated && !c.walking ? 4 : 0;
+  const feet = Math.round(y) + droop + seatDrop;
 
   // Ground shadow.
   shade(ctx, cx - 8, feet - 3, 16, 5, INK, .3);
 
-  // Legs, swinging on the walk cycle.
+  // Legs, swinging on the walk cycle. Seated, they tuck under the desk.
   const swing = c.walking ? (step === 1 ? 1 : step === 3 ? -1 : 0) : 0;
-  block(ctx, cx - 5 + swing, feet - 10 + bob, 4, 9, pants);
-  block(ctx, cx + 1 - swing, feet - 10 + bob, 4, 9, pants);
-  px(ctx, cx - 5 + swing, feet - 3 + bob, 4, 3, "#1d2231");
-  px(ctx, cx + 1 - swing, feet - 3 + bob, 4, 3, "#1d2231");
+  if (c.seated && !c.walking) {
+    block(ctx, cx - 5, feet - 6, 4, 6, pants);
+    block(ctx, cx + 1, feet - 6, 4, 6, pants);
+  } else {
+    block(ctx, cx - 5 + swing, feet - 10 + bob, 4, 9, pants);
+    block(ctx, cx + 1 - swing, feet - 10 + bob, 4, 9, pants);
+    px(ctx, cx - 5 + swing, feet - 3 + bob, 4, 3, "#1d2231");
+    px(ctx, cx + 1 - swing, feet - 3 + bob, 4, 3, "#1d2231");
+  }
 
   // Torso, with a lit shoulder and a shaded flank.
-  const bodyTop = feet - 23 + bob;
+  const bodyTop = feet - (c.seated && !c.walking ? 19 : 23) + bob;
   block(ctx, cx - 7, bodyTop, 14, 14, shirt);
   shade(ctx, cx - 7, bodyTop, 14, 2, "#ffffff", .22);
   shade(ctx, cx + 3, bodyTop, 4, 14, INK, .16);
@@ -458,6 +573,52 @@ export function drawCharacter(ctx: CanvasRenderingContext2D, x: number, y: numbe
   if (c.slumped) shade(ctx, cx - 8, headTop - 6, 16, 4, "#5a3a6a", .5);
 }
 
+/**
+ * The company's name, mounted on the back wall. Cheap to draw and it does more
+ * for ownership than any number in the HUD.
+ */
+export interface Span { x: number; w: number; }
+
+/**
+ * Widest run of bare wall between the fixtures. The sign hangs here rather than
+ * at dead centre, which is where the whiteboard usually already is.
+ */
+export function pickSignGap(wallLeft: number, wallRight: number, fixtures: Span[]): Span {
+  const sorted = [...fixtures].sort((a, b) => a.x - b.x);
+  let widest: Span = { x: wallLeft, w: 0 };
+  let cursor = wallLeft;
+  for (const fixture of [...sorted, { x: wallRight, w: 0 }]) {
+    const gap = { x: cursor, w: fixture.x - cursor };
+    if (gap.w > widest.w) widest = gap;
+    cursor = Math.max(cursor, fixture.x + fixture.w);
+  }
+  return widest;
+}
+
+/** Width the sign would take, so a caller can pick a gap that fits it. */
+export function measureSign(ctx: CanvasRenderingContext2D, name: string): number {
+  ctx.font = "bold 9px monospace";
+  return Math.ceil(ctx.measureText(name.toUpperCase()).width) + 18;
+}
+
+export function drawCompanySign(ctx: CanvasRenderingContext2D, cx: number, top: number, name: string, p: Palette): number {
+  ctx.font = "bold 9px monospace";
+  ctx.textAlign = "center";
+  const label = name.toUpperCase();
+  const w = Math.ceil(ctx.measureText(label).width) + 18;
+  const x = Math.round(cx - w / 2);
+  block(ctx, x, top, w, 17, p.wainscot);
+  px(ctx, x + 1, top + 1, w - 2, 1, p.wainscotEdge);
+  px(ctx, x + 2, top + 15, w - 4, 1, "#0d1319");
+  // Mounting brackets.
+  px(ctx, x + 5, top - 3, 2, 3, "#59617a");
+  px(ctx, x + w - 7, top - 3, 2, 3, "#59617a");
+  ctx.fillStyle = "#ffd489";
+  ctx.fillText(label, Math.round(cx), top + 12);
+  glowPool(ctx, cx, top + 9, w * .7, "rgb(255,196,110)", .1);
+  return w;
+}
+
 /** Small name tag, as in the reference art. */
 export function drawTag(ctx: CanvasRenderingContext2D, x: number, y: number, text: string) {
   ctx.font = "bold 8px monospace";
@@ -468,3 +629,5 @@ export function drawTag(ctx: CanvasRenderingContext2D, x: number, y: number, tex
   ctx.fillStyle = "#9fe8e0";
   ctx.fillText(text, x, y - 3);
 }
+
+export { companyShortName };

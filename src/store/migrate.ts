@@ -3,6 +3,7 @@ import type { FounderLegacy, GameState } from "../engine/types";
 import { seedTasks } from "../engine/tasks";
 import { eventSenderFor } from "../engine/events";
 import { createInvestorRoster } from "../data/investors";
+import { companyNameFor } from "../data/companyNames";
 
 type UpdateOneKeys =
   "version" | "companyNumber" | "companyStartedWeek" | "founder" | "companyHistory" | "firedMilestones" | "cards" |
@@ -11,7 +12,8 @@ type UpdateTwoKeys = "version" | "tasks" | "completedTasks" | "taskSerial" | "ta
 type FounderV5 = Omit<FounderLegacy, "coffeeDay" | "coffeeToday" | "jittery">;
 type UpdateSixKeys = "version" | "officeMove" | "productLines" | "productSerial" | "portfolio" | "holdingDividends";
 type UpdateFourKeys = "version" | "investors" | "rounds" | "capTable" | "activeRoundId";
-type LegacyV7 = Omit<GameState, UpdateSixKeys> & { version: 7 };
+type LegacyV8 = Omit<GameState, "version" | "companyName"> & { version: 8 };
+type LegacyV7 = Omit<LegacyV8, UpdateSixKeys> & { version: 7 };
 type LegacyV6 = Omit<LegacyV7, UpdateFourKeys> & { version: 6 };
 type LegacyV5 = Omit<LegacyV6, "version" | "founder"> & { version: 5; founder: FounderV5 };
 type LegacyV4 = Omit<LegacyV5, UpdateTwoKeys> & { version: 4 };
@@ -20,9 +22,12 @@ type LegacyV3 = Omit<LegacyV4, UpdateOneKeys> & { version: 3 };
 export function migrateGameState(value: unknown): GameState | null {
   if (!value || typeof value !== "object") return null;
   const version = (value as { version?: unknown }).version;
-  if (version === 8) return value as GameState;
-  let oldSeven: LegacyV7;
+  if (version === 9) return value as GameState;
   let needsTaskSeed = false;
+  let oldEight: LegacyV8;
+  if (version === 8) oldEight = value as LegacyV8;
+  else {
+    let oldSeven: LegacyV7;
   if (version === 7) oldSeven = value as LegacyV7;
   else {
     let oldSix: LegacyV6;
@@ -69,10 +74,18 @@ export function migrateGameState(value: unknown): GameState | null {
       ],
     };
   }
-  const migrated: GameState = {
+  oldEight = {
     ...oldSeven,
     version: 8,
     officeMove: null, productLines: [], productSerial: 0, portfolio: [], holdingDividends: 0,
+  };
+  }
+  // v9 named the company. Existing saves get the name their seed would have
+  // produced, so a company keeps one identity for the life of the run.
+  const migrated: GameState = {
+    ...oldEight,
+    version: 9,
+    companyName: companyNameFor(oldEight.seed, oldEight.companyNumber),
   };
   if (needsTaskSeed) seedTasks(migrated);
   return migrated;

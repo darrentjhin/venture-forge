@@ -111,10 +111,10 @@ export const useGame = create<GameStore>()(persist((set) => ({
   toggleMusic: () => set((store) => ({ musicEnabled: !store.musicEnabled })),
 }), {
   name: "venture-forge-v3",
-  version: 8,
+  version: 9,
   migrate: (persisted) => {
     const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean; musicEnabled?: boolean } : {};
     return { ...old, game: migrateGameState(old.game) };
   },
-  partialize: (store) => ({ game: store.game?.version === 8 ? store.game : null, muted: store.muted, musicEnabled: store.musicEnabled }),
+  partialize: (store) => ({ game: store.game?.version === 9 ? store.game : null, muted: store.muted, musicEnabled: store.musicEnabled }),
 }));

@@ -97,7 +97,7 @@ export function appointCeoAndStartCompany(input: GameState, personId: string | n
   const state = cloneGameState(input);
   const ownership = ownershipPercent(state.capTable, "founder") / 100;
   const company: ManagedCompany = {
-    id: `managed-company-${state.companyNumber}`, companyNumber: state.companyNumber, name: `Company ${state.companyNumber}`,
+    id: `managed-company-${state.companyNumber}`, companyNumber: state.companyNumber, name: state.companyName,
     ceoName: selected?.name ?? "Morgan Vale", founderOwnership: ownership, mrr: state.mrr, cash: state.cash - outsideFee,
     customers: state.customers.length + state.productLines.reduce((sum, line) => sum + line.customers, 0), valuation: state.valuation,
     workspace: state.workspace, people: state.people.map((person) => ({ ...person, beliefs: { ...person.beliefs }, appearance: { ...person.appearance } })),

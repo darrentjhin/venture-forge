@@ -52,7 +52,7 @@ export interface OfficeMove { target: Workspace; weeksRemaining: number; deposit
 export interface ProductLine { id: string; name: string; price: number; selectedFeature: FeatureId; shippedFeatures: FeatureId[]; customers: number; churned: number; mrr: number; startedWeek: number; }
 export interface ManagedCompany { id: string; companyNumber: number; name: string; ceoName: string; founderOwnership: number; mrr: number; cash: number; customers: number; valuation: number; workspace: Workspace; people: Person[]; dividendsPaid: number; startedWeek: number; appointedWeek: number; }
 export interface GameState {
-  version: 8; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
+  version: 9; seed: number; companyName: string; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
   truth: MarketTruth; beliefs: Beliefs; evidence: EvidenceCard[]; conviction: number; evidenceScore: number; overclaim: number; quietCorrectWeeks: number;
   pipeline: number; customers: Customer[]; churnPressure: number; churnedCustomers: number; closedDeals: number; mrr: number; previousMrr: number; price: number; reputation: number;
   shippedFeatures: FeatureId[]; selectedFeature: FeatureId; techDebt: number; onboardingQuality: number; people: Person[]; formerPeople: string[]; workspace: Workspace; headcountHistory: number[];

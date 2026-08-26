@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { findPath, hasArrived, isWalking, sendAgentTo, stepAgent, type Agent } from "../scene/room/agents";
 import { blockedTiles, planFor } from "../scene/room/plans";
+import { pickSignGap } from "../scene/room/sprites";
+import { TILE, viewFor } from "../scene/room/geometry";
 import { SEATS_REQUIRED } from "../scene/room/plans";
 import { integerScaleFor } from "../scene/room/geometry";
 
@@ -112,5 +114,25 @@ describe("office rooms", () => {
     founder.controlled = true;
     for (let frame = 0; frame < 300; frame += 1) stepAgent(founder, plan, blockedTiles(plan), frame);
     expect({ x: founder.x, y: founder.y }).toEqual({ x: 3, y: 3 });
+  });
+
+  it("hangs the company sign clear of every wall fixture", () => {
+    for (const stage of Object.keys(SEATS_REQUIRED) as (keyof typeof SEATS_REQUIRED)[]) {
+      const plan = planFor(stage);
+      const view = viewFor(plan.cols, plan.rows);
+      const fixtures = plan.objects
+        .filter((object) => object.ty < 0)
+        .map((object) => ({ x: view.origin.x + object.tx * TILE - 10, w: TILE + 20 }));
+
+      const gap = pickSignGap(view.origin.x + 10, view.origin.x + plan.cols * TILE - 10, fixtures);
+      expect(gap.w, `${stage} has no bare wall for a sign`).toBeGreaterThan(60);
+
+      // A sign centred in the gap must not touch any fixture.
+      const sign = { x: gap.x + gap.w / 2 - 60, w: 120 };
+      for (const fixture of fixtures) {
+        const overlaps = sign.x < fixture.x + fixture.w && fixture.x < sign.x + sign.w;
+        expect(overlaps, `${stage} sign overlaps a fixture`).toBe(false);
+      }
+    }
   });
 });

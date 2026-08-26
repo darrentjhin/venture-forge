@@ -1,4 +1,5 @@
 import { BALANCE } from "../data/balance";
+import { companyNameFor } from "../data/companyNames";
 import { cloneGameState } from "./clone";
 import { newRun } from "./init";
 import { randomInt } from "./rng";
@@ -16,7 +17,7 @@ export function lowerWorkspace(workspace: Workspace): Workspace | null {
 function archiveAndRestart(state: GameState): GameState {
   const closingEntry = {
     id: `company-${state.companyNumber}-closed`, week: state.week, kind: "restart" as const, icon: "🔒",
-    title: `Company ${state.companyNumber} closed`, body: `It closed with $${Math.round(state.mrr).toLocaleString()} monthly revenue and ${state.customers.length} customers.`,
+    title: `${state.companyName} closed`, body: `It closed with $${Math.round(state.mrr).toLocaleString()} monthly revenue and ${state.customers.length} customers.`,
   };
   state.companyHistory.push(closingEntry);
   const history = [...state.founder.history, {
@@ -30,6 +31,7 @@ function archiveAndRestart(state: GameState): GameState {
   fresh.week = state.week + 1;
   fresh.companyStartedWeek = fresh.week;
   fresh.companyNumber = state.companyNumber + 1;
+  fresh.companyName = companyNameFor(fresh.seed, fresh.companyNumber);
   fresh.cash = Math.max(BALANCE.startingCash, state.founder.cash);
   fresh.reputation = reputation;
   fresh.founder = { ...state.founder, reputation, history, relationships: { ...state.founder.relationships } };
@@ -39,7 +41,7 @@ function archiveAndRestart(state: GameState): GameState {
     const relationship = fresh.founder.relationships[investor.id];
     if (relationship !== undefined) { investor.relationship = relationship; investor.discovered = true; }
   });
-  fresh.cards = [{ id: `restart-${fresh.companyNumber}`, kind: "restart", week: fresh.week, icon: "🔁", title: "Back at the desk", body: `Company ${state.companyNumber} is in your history. Company ${fresh.companyNumber} starts now.` }];
+  fresh.cards = [{ id: `restart-${fresh.companyNumber}`, kind: "restart", week: fresh.week, icon: "🔁", title: "Back at the desk", body: `${state.companyName} is in your history. ${fresh.companyName} starts now.` }];
   fresh.decisionLog[0] = { ...fresh.decisionLog[0], week: fresh.week, detail: `Started company ${fresh.companyNumber} in a small room.` };
   fresh.history = [{ week: fresh.week, cash: fresh.cash, mrr: 0 }];
   return fresh;

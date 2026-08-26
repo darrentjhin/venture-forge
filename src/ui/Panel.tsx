@@ -490,7 +490,7 @@ function CapitalPanel({ game }: { game: GameState }) {
     <div className="section">
       <span className="eyebrow">Holding company · {game.portfolio.length + 1} active</span>
       {game.portfolio.map((company) => <article className="portfolio-company" key={company.id}><div><strong>{company.name}</strong><span>{company.ceoName}, CEO · {(company.founderOwnership * 100).toFixed(1)}% owned</span><p>${Math.round(company.mrr).toLocaleString()} monthly · ${Math.round(company.valuation).toLocaleString()} value · ${Math.round(company.dividendsPaid).toLocaleString()} dividends paid</p></div><button onClick={() => visitCompany(company.id)}>Visit office</button></article>)}
-      <div className="portfolio-company current"><div><strong>Company {game.companyNumber} · you are CEO</strong><span>${Math.round(game.mrr).toLocaleString()} monthly · {game.people.length + 1} people</span></div></div>
+      <div className="portfolio-company current"><div><strong>{game.companyName} · you are CEO</strong><span>${Math.round(game.mrr).toLocaleString()} monthly · {game.people.length + 1} people</span></div></div>
       {game.portfolio.length > 0 && <p className="raise-next"><b>Holding dividends:</b> ${Math.round(game.holdingDividends).toLocaleString()} paid into the companies you are building.</p>}
     </div>
 

@@ -44,18 +44,21 @@ function ownRoom(): RoomPlan {
     furniture: [
       { kind: "desk", tx: 4, ty: 2 }, { kind: "chair", tx: 4, ty: 1 },
       { kind: "desk", tx: 6, ty: 2 }, { kind: "chair", tx: 6, ty: 1 },
+      { kind: "rug", tx: 4, ty: 3 }, { kind: "rug", tx: 5, ty: 3 }, { kind: "rug", tx: 6, ty: 3 },
       { kind: "bed", tx: 1, ty: 3 }, { kind: "bed", tx: 2, ty: 3 },
-      { kind: "rug", tx: 5, ty: 4 }, { kind: "rug", tx: 6, ty: 4 },
+      { kind: "wardrobe", tx: 0, ty: 1 }, { kind: "books", tx: 3, ty: 3 },
       { kind: "shelf", tx: 9, ty: 1 }, { kind: "shelf", tx: 10, ty: 1 },
-      { kind: "plant", tx: 10, ty: 4 }, { kind: "plant", tx: 0, ty: 1 },
-      { kind: "bin", tx: 8, ty: 2 }, { kind: "lamp", tx: 3, ty: 1 },
-      { kind: "sofa", tx: 1, ty: 1 }, { kind: "counter", tx: 8, ty: 4 },
+      { kind: "boxes", tx: 8, ty: 1 }, { kind: "easel", tx: 2, ty: 1 },
+      { kind: "beanbag", tx: 9, ty: 3 }, { kind: "plant", tx: 10, ty: 4 },
+      { kind: "plant", tx: 0, ty: 4 }, { kind: "bin", tx: 7, ty: 4 },
+      { kind: "lamp", tx: 3, ty: 1 }, { kind: "counter", tx: 8, ty: 4 },
+      { kind: "books", tx: 1, ty: 4 },
     ],
     seats: [{ x: 4, y: 1 }, { x: 6, y: 1 }],
     kitchen: [{ x: 8, y: 3 }],
     coffeeMachine: { x: 8, y: 4 },
     meeting: [{ x: 5, y: 3 }],
-    wander: [{ x: 3, y: 3 }, { x: 7, y: 3 }, { x: 4, y: 4 }, { x: 9, y: 3 }, { x: 2, y: 2 }],
+    wander: [{ x: 7, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 4 }, { x: 2, y: 2 }, { x: 6, y: 4 }],
     objects: [
       { panel: "metrics", kind: "monitor", tx: 4, ty: 2 },
       { panel: "notebook", kind: "notebook", tx: 6, ty: 2 },
@@ -126,6 +129,12 @@ function openPlan(stage: "coworking" | "office" | "floor" | "hq" | "downsized"):
   furniture.push({ kind: "chair", tx: 1, ty: bottom - 2 }, { kind: "chair", tx: 2, ty: bottom - 2 });
   furniture.push({ kind: "rug", tx: 1, ty: bottom }, { kind: "rug", tx: 2, ty: bottom });
   furniture.push({ kind: "lamp", tx: 0, ty: bottom - 2 });
+
+  // Dressing that breaks up a grid of identical desks.
+  furniture.push({ kind: "printer", tx: right - 3, ty: 1 }, { kind: "boxes", tx: right - 4, ty: bottom });
+  furniture.push({ kind: "beanbag", tx: right - 2, ty: bottom - 2 }, { kind: "books", tx: 0, ty: bottom - 2 });
+  furniture.push({ kind: "easel", tx: 3, ty: bottom - 1 });
+  for (let ty = 3; ty < bottom; ty += 3) furniture.push({ kind: "plant", tx: 0, ty });
 
   if (stage === "floor" || stage === "hq") {
     furniture.push({ kind: "server", tx: right - 1, ty: 1 }, { kind: "lamp", tx: 0, ty: 1 });

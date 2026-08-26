@@ -3,10 +3,10 @@ import { appearanceFromId } from "../engine/people";
 import { selectRoomStage, selectRunwayMood } from "../engine/selectors";
 import type { GameState, PanelId, Person, PersonMotion } from "../engine/types";
 import { findPath, hasArrived, isWalking, sendAgentTo, stepAgent, type Agent } from "./room/agents";
-import { integerScaleFor, TILE, tileFloor, toScreen, viewFor } from "./room/geometry";
+import { integerScaleFor, TILE, WALL_H, tileFloor, toScreen, viewFor } from "./room/geometry";
 import { paletteFor } from "./room/palette";
 import { blockedTiles, planFor } from "./room/plans";
-import { drawCharacter, drawFurniture, drawObject, drawRoomShell, drawTag, drawWallDecor, px, type ObjectHit } from "./room/sprites";
+import { drawCharacter, drawFurniture, drawObject, drawRoomShell, companyShortName, drawCompanySign, measureSign, pickSignGap, drawTag, drawVignette, drawWallDecor, px, type ObjectHit } from "./room/sprites";
 
 const MOTIONS: PersonMotion[] = ["typing", "typing", "typing", "typing", "thinking", "walking", "coffee", "meeting", "talking"];
 
@@ -66,7 +66,21 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
       baseContext.imageSmoothingEnabled = false;
       px(baseContext, 0, 0, view.width, view.height, "#0d1119");
       drawRoomShell(baseContext, plan.cols, plan.rows, view.origin, p);
-      drawWallDecor(baseContext, plan.cols, view.origin, p, mood, state.week);
+      // Wall-mounted fixtures (door, whiteboard) own fixed spans; the sign hangs
+      // in the widest gap left between them, shortened if the full name will not
+      // fit. Decor then fills whatever is still bare.
+      const fixtures = plan.objects
+        .filter((object) => object.ty < 0)
+        .map((object) => ({ x: toScreen(object.tx, 0, view.origin).x - 10, w: TILE + 20 }));
+
+      const gap = pickSignGap(view.origin.x + 10, view.origin.x + plan.cols * TILE - 10, fixtures);
+      const signTop = view.origin.y - WALL_H + 30;
+      const label = measureSign(baseContext, state.companyName) <= gap.w
+        ? state.companyName
+        : companyShortName(state.companyName);
+      const signWidth = drawCompanySign(baseContext, gap.x + gap.w / 2, signTop, label, p);
+      const reserved = [...fixtures, { x: gap.x + gap.w / 2 - signWidth / 2 - 8, w: signWidth + 16 }];
+      drawWallDecor(baseContext, plan.cols, view.origin, p, mood, state.week, reserved);
     }
     const grouped = new Map<number, HTMLCanvasElement>();
     for (const item of plan.furniture) {
@@ -79,7 +93,7 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
       drawFurniture(context, item.kind, x, y, item.tx * 3 + item.ty, p);
     }
     return { base, furniture: [...grouped.entries()].map(([depth, layer]) => ({ depth, layer })) };
-  }, [plan, view, mood, state.week]);
+  }, [plan, view, mood, state.week, state.companyName]);
 
   const founder = useMemo<Person>(() => ({
     id: `founder-${state.seed}`, name: "You", role: "Operations", archetype: "operator", salaryWeekly: 0,
@@ -173,7 +187,8 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
         const jitter = index === 0 && state.founder.jittery && Math.floor(frame / 2) % 2 === 0 ? 1 : 0;
         const foot = tileFloor(agent.x, agent.y, origin);
         foot.x += jitter;
-        drawCharacter(ctx, foot.x, foot.y, { ...agent, walking: isWalking(agent) }, frame);
+        const atDesk = Math.abs(agent.x - agent.seat.x) < .1 && Math.abs(agent.y - agent.seat.y) < .1;
+        drawCharacter(ctx, foot.x, foot.y, { ...agent, walking: isWalking(agent), seated: atDesk }, frame);
         if (showTags) drawTag(ctx, foot.x, foot.y - 34, agent.label);
       },
     }));
@@ -194,6 +209,8 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
       px(ctx, 0, 0, view.width, view.height, "#0a1420");
       ctx.globalAlpha = 1;
     }
+    // Last: the room is a lit box in a dark building. Deepens as cash runs out.
+    drawVignette(ctx, view.width, view.height, .3 + p.dim * 1.4);
   }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, state.officeBeat, state.founder.jittery, metricPulse, unread, staticScene]);
 
   useEffect(() => {
@@ -252,12 +269,11 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
     if (!canvas) return { x: -999, y: -999 };
     const rect = canvas.getBoundingClientRect();
     // object-fit: contain letterboxes the canvas, so back out the real box.
-    const scale = Math.min(rect.width / view.width, rect.height / view.height);
-    const drawnW = view.width * scale;
-    const drawnH = view.height * scale;
+    // The canvas is sized to view * integer scale, so the ratio is that scale.
+    const scale = rect.width / view.width;
     return {
-      x: (event.clientX - rect.left - (rect.width - drawnW) / 2) / scale,
-      y: (event.clientY - rect.top - (rect.height - drawnH) / 2) / scale,
+      x: (event.clientX - rect.left) / scale,
+      y: (event.clientY - rect.top) / scale,
     };
   }, [view]);
 
@@ -292,6 +308,10 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
 
     if (hit) {
       const panel = hit.panel as PanelId;
+      // The phone is in your pocket. Making the founder cross the room every
+      // time they check it turns the primary UI into a walk, so it opens where
+      // you stand; physical fixtures still need you to go to them.
+      if (panel === "inbox") { onOpen(panel); return; }
       const object = plan.objects.find((item) => item.panel === panel);
       if (!object) return;
       const base = { x: Math.max(0, Math.min(plan.cols - 1, Math.round(object.tx))), y: Math.max(0, Math.min(plan.rows - 1, Math.round(object.ty))) };
@@ -313,7 +333,7 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
     if (tile.x < 0 || tile.y < 0 || tile.x >= plan.cols || tile.y >= plan.rows || blocked.has(`${tile.x},${tile.y}`)) return;
     pendingRef.current = null;
     sendAgentTo(player, plan, blocked, tile);
-  }, [toInternal, plan, blocked, view]);
+  }, [toInternal, plan, blocked, view, onOpen]);
 
   return <canvas
     ref={canvasRef}

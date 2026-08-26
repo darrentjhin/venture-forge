@@ -44,7 +44,7 @@ export function Title() {
 
       {saved && <button className="save-card" onClick={() => { playSfx("click", muted); continueRun(); }}>
         <span className="save-play">▶</span>
-        <div><small>Continue</small><strong>Company {saved.companyNumber}</strong><p>Y{year} W{week} · ${Math.round(saved.mrr).toLocaleString()} monthly · {saved.people.length + 1} people</p></div>
+        <div><small>Continue</small><strong>{saved.companyName}</strong><p>Y{year} W{week} · ${Math.round(saved.mrr).toLocaleString()} monthly · {saved.people.length + 1} people</p></div>
         <b>Back to the office →</b>
       </button>}
 
