@@ -46,7 +46,8 @@ export const useGame = create<GameStore>()(persist((set, get) => ({
   endWeek: () => set((store) => {
     if (!store.game) return {};
     const game = advanceWeek(store.game);
-    return { game, reportOpen: game.weeklyReports.length > store.game.weeklyReports.length, screen: game.ending ? "postmortem" : "game", panel: game.pendingEvents.length ? "inbox" : store.panel };
+    // Closing the panel keeps the week report from opening behind a sheet.
+    return { game, reportOpen: game.weeklyReports.length > store.game.weeklyReports.length, screen: game.ending ? "postmortem" : "game", panel: null };
   }),
   closeReport: () => set({ reportOpen: false }),
   resolveEvent: (eventId, choiceId) => set((store) => store.game ? { game: resolveEngineEvent(store.game, eventId, choiceId) } : {}),
