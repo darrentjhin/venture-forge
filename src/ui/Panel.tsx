@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { playSfx } from "../audio/sfx";
 import { BALANCE } from "../data/balance";
 import { CHANNELS, CHANNEL_LABELS, type ChannelId } from "../data/channels";
@@ -8,7 +8,8 @@ import { FEATURES, FEATURE_LABELS, type FeatureId } from "../data/features";
 import { SEGMENTS, SEGMENT_LABELS, type SegmentId } from "../data/segments";
 import { selectBurn, selectRunway, selectRunwayDisplay, selectWeeklyRevenue, selectWorkspaceCost } from "../engine/selectors";
 import { alignmentFor } from "../engine/beliefs";
-import type { BeliefKey, EvidenceCard, GameState, PanelId, Person } from "../engine/types";
+import type { BeliefKey, EvidenceCard, GameState, InvestorKind, PanelId, Person } from "../engine/types";
+import { canRepitchInvestor, investorStageLabel, investorThesis, latestTermSheet, lowestOpenBar, ownershipPercent } from "../engine/fundraising";
 import { useGame } from "../store/useGame";
 import { ActionList } from "./ActionList";
 import { NumberValue } from "./Number";
@@ -21,7 +22,7 @@ const PANEL_META: Record<PanelId, { title: string; blurb: string }> = {
   inbox: { title: "The phone", blurb: "Work, messages, people, money, and the numbers—inside the object on your desk." },
   roadmap: { title: "The whiteboard", blurb: "What is built, what is next, and what the shortcuts are costing." },
   team: { title: "The door", blurb: "The people carrying the company, and how close they are to leaving." },
-  capital: { title: "The filing cabinet", blurb: "Valuation, outside money, and the gap between your story and your evidence." },
+  capital: { title: "The raise binder", blurb: "People to meet, passes to learn from, terms to weigh, and the ownership you keep." },
 };
 
 const PRICE_STOPS = [25, 49, 79, 99, 149, 199, 249, 349, 499, 699, 900];
@@ -379,36 +380,83 @@ function TeamPanel({ game }: { game: GameState }) {
 
 /* ── Capital ─────────────────────────────────────────────── */
 function CapitalPanel({ game }: { game: GameState }) {
-  const gap = game.conviction - game.evidenceScore;
-  const overclaimLevel = game.overclaim > BALANCE.overclaimThresholds[2] ? "bad" : game.overclaim > BALANCE.overclaimThresholds[1] ? "warn" : "";
+  const openRound = useGame((store) => store.openRound);
+  const discover = useGame((store) => store.discoverInvestors);
+  const research = useGame((store) => store.researchInvestor);
+  const pitch = useGame((store) => store.pitchInvestor);
+  const counter = useGame((store) => store.counterTermSheet);
+  const accept = useGame((store) => store.acceptTermSheet);
+  const walk = useGame((store) => store.walkFromTermSheet);
+  const closeRound = useGame((store) => store.closeRound);
+  const [stage, setStage] = useState<InvestorKind>("angel");
+  const active = game.rounds.find((round) => round.id === game.activeRoundId) ?? null;
+  const founderPercent = ownershipPercent(game.capTable, "founder");
+  const totalShares = game.capTable.reduce((sum, entry) => sum + entry.shares, 0);
+  const stageDefaults: Record<InvestorKind, [number, number]> = { angel: [100_000, 700_000], preseed: [500_000, 2_500_000], seed: [1_500_000, 6_000_000], seriesA: [5_000_000, 18_000_000], growth: [15_000_000, 60_000_000] };
+  const discovered = game.investors.filter((investor) => investor.discovered && (!active || investor.kind === active.stage));
+  const committed = active?.commitments.reduce((sum, item) => sum + item.amount, 0) ?? 0;
 
   return <>
     <div className="section">
-      <span className="eyebrow">Position</span>
+      <span className="eyebrow">What you own</span>
       <div className="metric-grid">
-        <div className="metric"><small>Valuation</small><strong>${(game.valuation / 1_000_000).toFixed(2)}M</strong><em>estimate, not an offer</em></div>
-        <div className="metric"><small>Outside capital</small><strong>${game.outsideCapital.toLocaleString()}</strong><em>{game.outsideCapital > 0 ? "revenue carries a financing drag" : "fully bootstrapped"}</em></div>
-        <div className="metric"><small>Story strength</small><strong>{Math.round(game.conviction)}</strong><em>how hard you are selling it</em></div>
-        <div className="metric"><small>Evidence</small><strong>{Math.round(game.evidenceScore)}</strong><em>what you can actually prove</em></div>
+        <div className="metric"><small>Your ownership</small><strong>{founderPercent.toFixed(1)}%</strong><em>{game.capTable.find((entry) => entry.kind === "founder")?.shares.toLocaleString()} shares</em></div>
+        <div className="metric"><small>What that is worth</small><strong>${Math.round(game.valuation * founderPercent / 100).toLocaleString()}</strong><em>on the current company estimate</em></div>
+        <div className="metric"><small>Money raised</small><strong>${game.outsideCapital.toLocaleString()}</strong><em>priced ownership sold</em></div>
+        <div className="metric"><small>Company estimate</small><strong>${(game.valuation / 1_000_000).toFixed(2)}M</strong><em>not an offer until someone signs</em></div>
       </div>
-    </div>
-
-    <div className={`section`}>
-      <span className="eyebrow">The gap</span>
-      <Gauge label="Story" value={game.conviction} tone="var(--amber)"/>
-      <Gauge label="Evidence" value={game.evidenceScore} tone="var(--teal)"/>
-      <div className={`metric ${overclaimLevel}`} style={{ marginTop: 10 }}>
-        <small>Story risk</small><strong>{Math.round(game.overclaim)}</strong>
-        <em>{game.overclaim > 45 ? "You are selling a company that does not exist yet." : game.overclaim > 25 ? "The story is running ahead of the proof." : gap > 15 ? "Slightly ahead of the evidence." : "Story and proof are roughly in step."}</em>
+      <div className="cap-bar" aria-label="Company ownership">
+        {game.capTable.map((entry, index) => <i key={entry.id} title={`${entry.holder}: ${(entry.shares / totalShares * 100).toFixed(1)}%`} style={{ width: `${entry.shares / totalShares * 100}%`, background: ["#d49a3a", "#4f8f86", "#8b7aa8", "#c86d58", "#6689b0", "#7f9b62"][index % 6] }}/>) }
       </div>
-      <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
-        A strong story opens doors — an angel needs 48, a seed fund needs 62. But a story that outruns proof creates risk,
-        and investors remember promises the product cannot keep.
-      </p>
+      <div className="cap-legend">{game.capTable.map((entry) => <span key={entry.id}><b>{entry.holder}</b> {(entry.shares / totalShares * 100).toFixed(1)}%</span>)}</div>
     </div>
 
     <div className="section">
-      <span className="eyebrow">Raise or cut</span>
+      <span className="eyebrow">Raise plan</span>
+      {!active ? <div className="raise-open">
+        <label>Stage<select value={stage} onChange={(event) => setStage(event.target.value as InvestorKind)}>{(["angel", "preseed", "seed", "seriesA", "growth"] as InvestorKind[]).map((kind) => <option key={kind} value={kind}>{investorStageLabel(kind)}</option>)}</select></label>
+        <div><span>Target</span><strong>${stageDefaults[stage][0].toLocaleString()}</strong></div><div><span>Price before money</span><strong>${stageDefaults[stage][1].toLocaleString()}</strong></div>
+        <button className="btn btn-primary" onClick={() => openRound(stage, ...stageDefaults[stage])}>Open this round</button>
+      </div> : <div className={`raise-summary ${active.status}`}>
+        <strong>{investorStageLabel(active.stage)} · ${active.targetAmount.toLocaleString()} target</strong>
+        <span>${committed.toLocaleString()} committed · {active.leadInvestorId ? "lead signed" : "still needs a lead"} · week {game.week - active.openedWeek + 1}/8</span>
+        {active.leadInvestorId && active.commitments.length > 0 && <button className="btn btn-primary" onClick={closeRound}>Close round and wire money</button>}
+      </div>}
+    </div>
+
+    <div className="section">
+      <span className="eyebrow">Find people to pitch</span>
+      <div className="raise-find"><button onClick={() => discover("cold")} disabled={game.focus < 1}>Cold outreach · 1 Focus</button><button onClick={() => discover("network")} disabled={game.focus < 2 || game.cash < 200}>Founder dinner · 2 Focus · $200</button></div>
+      <p className="raise-help">Cold outreach starts the relationship at 5 and hurts the first pitch. A warm room finds up to three people.</p>
+    </div>
+
+    <div className="section">
+      <span className="eyebrow">Investor pipeline · {discovered.length} known</span>
+      <div className="investor-list">
+        {discovered.map((investor) => {
+          const latest = active ? [...active.meetings].reverse().find((meeting) => meeting.investorId === investor.id) : null;
+          const sheet = active ? latestTermSheet(active, investor.id) : null;
+          const isCommitted = active?.commitments.some((item) => item.investorId === investor.id);
+          const researching = !investor.researched && game.decisionLog.some((decision) => decision.type === "investor-research" && decision.refId === investor.id);
+          const status = isCommitted ? "Committed" : latest?.outcome.kind === "pass" ? `Passed · ${latest.outcome.reason}` : latest?.outcome.kind === "secondMeeting" ? "Second meeting" : latest?.outcome.kind === "diligence" ? "Diligence · 2 weeks" : sheet ? "Term sheet" : investor.researched ? "Researched" : researching ? "Researching · 1 week" : "Unresearched";
+          return <article className="investor-card" key={investor.id}>
+            <header><span>{investor.name.charAt(0)}</span><div><strong>{investor.name}</strong><small>{investor.firm} · {investorStageLabel(investor.kind)} · relationship {investor.relationship}</small></div><b>{status}</b></header>
+            <p>Checks ${investor.checkMin.toLocaleString()}–${investor.checkMax.toLocaleString()} · Portfolio: {investor.portfolio.join(", ")}</p>
+            {investor.researched ? <p className="investor-research">Looks for {investorThesis(investor)} · wants ${Math.round(investor.minMonthlyRevenue).toLocaleString()} monthly · accepts tech strain below {investor.maxTechDebt}</p> : <p className="investor-research hidden">Their customer focus and number bar are still unknown.</p>}
+            {sheet && !isCommitted ? <div className="term-sheet"><strong>${sheet.amount.toLocaleString()} at ${sheet.preMoney.toLocaleString()} before money</strong><span>{sheet.boardSeat ? "Board seat" : "No board seat"} · {sheet.liquidationPreference}× first-money-back · {Math.round(sheet.poolTopUp * 100)}% employee pool · expires W{sheet.expiresWeek}</span><div><button onClick={() => accept(investor.id)} disabled={!investor.leadsRounds && !active?.leadInvestorId}>Accept</button><button onClick={() => counter(investor.id, "valuation")}>Counter price · 25% walk risk</button><button onClick={() => counter(investor.id, "board")}>Refuse board seat</button><button onClick={() => counter(investor.id, "pool")}>Ask for 8% pool</button><button onClick={() => walk(investor.id)}>Walk</button></div></div> : <div className="investor-actions">
+              {!investor.researched && !researching && <button onClick={() => research(investor.id)} disabled={game.focus < 1}>Research · 1 Focus · one week</button>}
+              {active && investor.kind === active.stage && !isCommitted && (!latest || latest.outcome.kind === "secondMeeting" || (latest.outcome.kind === "pass" && canRepitchInvestor(game, investor))) && <button onClick={() => pitch(investor.id)} disabled={game.focus < 2}>Pitch · 2 Focus</button>}
+              {!investor.leadsRounds && <em>Will follow — needs a lead</em>}
+            </div>}
+          </article>;
+        })}
+      </div>
+      {!discovered.length && <div className="empty"><strong>No one fits this round yet.</strong><p>Use cold outreach or go to the founder dinner.</p></div>}
+      {lowestOpenBar(game) && <p className="raise-next"><b>Next move:</b> {lowestOpenBar(game)}</p>}
+    </div>
+
+    <div className="section">
+      <span className="eyebrow">Desperate options</span>
       <ActionList game={game} group="capital"/>
     </div>
   </>;

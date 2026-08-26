@@ -15,6 +15,8 @@ export type CrisisChoiceId = "layoff" | "loan" | "sellOffice";
 export type CompanyHistoryKind = "milestone" | "quarter" | "crisis" | "restart";
 export type Skill = "engineering" | "design" | "sales" | "support" | "ops" | "research";
 export type PhoneAppId = "tasks" | "inbox" | "team" | "bank" | "stats";
+export type InvestorKind = "angel" | "preseed" | "seed" | "seriesA" | "growth";
+export type PassReason = "tooEarly" | "notOurThesis" | "churnConcern" | "marketTooSmall" | "teamGap" | "valuationTooHigh" | "needLead" | "numbersDidNotMatch" | "timing";
 
 export interface MarketTruth { buyer: SegmentId; secondaryBuyer: SegmentId; willingnessToPay: number; wedgeFeature: FeatureId; supportFeature: FeatureId; decoyFeatures: FeatureId[]; churnDriver: ChurnDriverId; channel: ChannelId; demandInflectionWeek: number; competitorAggression: number; }
 export interface Hypothesis<T> { value: T; confidence: number; committedWeek: number; }
@@ -41,8 +43,13 @@ export interface TaskReward { cash?: number; mrr?: number; reputation?: number; 
 export interface Task { id: string; title: string; detail: string; skill: Skill; effort: number; progress: number; assigned: string[]; source: "backlog" | "event" | "customer" | "investor" | "milestone"; reward: TaskReward; expiresWeek: number | null; createdWeek: number; }
 export interface Finding { id: string; week: number; from: string; text: string; actedOn: boolean; }
 export interface Workload { overworkWeeks: number; burnout: number; }
+export interface TermSheet { investorId: string; amount: number; preMoney: number; boardSeat: boolean; liquidationPreference: 1 | 1.5 | 2; poolTopUp: number; expiresWeek: number; }
+export type MeetingOutcome = { kind: "pass"; reason: PassReason; soft: boolean } | { kind: "secondMeeting" } | { kind: "diligence" } | { kind: "termSheet"; sheet: TermSheet };
+export interface Investor { id: string; name: string; firm: string; kind: InvestorKind; checkMin: number; checkMax: number; leadsRounds: boolean; temperament: "fast" | "thorough" | "tyreKicker" | "cutthroat"; demandsBoardSeat: boolean; thesisSegments: SegmentId[]; minMonthlyRevenue: number; maxTechDebt: number; portfolio: string[]; discovered: boolean; researched: boolean; relationship: number; lastContactWeek: number | null; passes: { week: number; reason: PassReason }[]; }
+export interface Round { id: string; stage: InvestorKind; targetAmount: number; askPreMoney: number; openedWeek: number; leadInvestorId: string | null; commitments: { investorId: string; amount: number; week: number }[]; meetings: { investorId: string; week: number; outcome: MeetingOutcome }[]; poolTopUp: number; status: "open" | "closed" | "cold" | "abandoned"; }
+export interface CapEntry { id: string; holder: string; kind: "founder" | "cofounder" | "optionPool" | "investor"; shares: number; roundId: string | null; sinceWeek: number; }
 export interface GameState {
-  version: 6; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
+  version: 7; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
   truth: MarketTruth; beliefs: Beliefs; evidence: EvidenceCard[]; conviction: number; evidenceScore: number; overclaim: number; quietCorrectWeeks: number;
   pipeline: number; customers: Customer[]; churnPressure: number; churnedCustomers: number; closedDeals: number; mrr: number; previousMrr: number; price: number; reputation: number;
   shippedFeatures: FeatureId[]; selectedFeature: FeatureId; techDebt: number; onboardingQuality: number; people: Person[]; formerPeople: string[]; workspace: Workspace; headcountHistory: number[];
@@ -52,8 +59,9 @@ export interface GameState {
   companyNumber: number; companyStartedWeek: number; founder: FounderLegacy; companyHistory: CompanyHistoryEntry[]; firedMilestones: string[]; cards: GameCard[];
   crisis: CrisisState; emergencyLoanBalance: number; workspaceCap: Workspace | null; quarterReports: QuarterReport[]; officeBeat: number;
   tasks: Task[]; completedTasks: string[]; taskSerial: number; taskMrr: number; findings: Finding[]; workloads: Record<string, Workload>; unlockedApps: PhoneAppId[];
+  investors: Investor[]; rounds: Round[]; capTable: CapEntry[]; activeRoundId: string | null;
 }
 
-export type ActionId = "interview" | "interviewSprint" | "landingPage" | "churnAutopsy" | "winLoss" | "teardown" | "ship" | "harden" | "onboarding" | "payDebt" | "spike" | "coldOutreach" | "salesCall" | "communityLaunch" | "content" | "paidAds" | "enterpriseDeal" | "postRole" | "interviewCandidate" | "offer" | "oneOnOne" | "raise" | "letGo" | "angel" | "seedFund" | "bridge" | "revenueFinance" | "cutBurn" | "weekend" | "pivot" | "rewritePitch" | "allNighter";
+export type ActionId = "interview" | "interviewSprint" | "landingPage" | "churnAutopsy" | "winLoss" | "teardown" | "ship" | "harden" | "onboarding" | "payDebt" | "spike" | "coldOutreach" | "salesCall" | "communityLaunch" | "content" | "paidAds" | "enterpriseDeal" | "postRole" | "interviewCandidate" | "offer" | "oneOnOne" | "raise" | "letGo" | "bridge" | "revenueFinance" | "cutBurn" | "weekend" | "pivot" | "rewritePitch" | "allNighter";
 
 export interface ActionDef { id: ActionId; group: PanelId; name: string; focusCost: number; cashCost: number; preview: string; availability: (state: GameState) => boolean; }

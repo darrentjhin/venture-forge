@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { conversionRate, churnRate, overclaimDelta, pivotCost, runwayWeeks } from "../engine/economy";
 import { newRun } from "../engine/init";
+import { queueAction } from "../engine/actions";
 
 describe("economy invariants", () => {
+  it("cannot queue the same bridge note twice in one week", () => {
+    const state = newRun(9);
+    const once = queueAction(state, "bridge");
+    expect(queueAction(once, "bridge")).toBe(once);
+  });
   it("alignment at 1.0 converts at least four times alignment at zero", () => {
     const state = newRun(10); state.price = state.truth.willingnessToPay;
     expect(conversionRate(state, 1)).toBeGreaterThanOrEqual(conversionRate(state, 0) * 4);

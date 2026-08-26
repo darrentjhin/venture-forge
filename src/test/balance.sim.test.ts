@@ -31,7 +31,7 @@ function resolveAll(state: GameState): GameState {
 
 function pickAction(state: GameState, policy: Policy, roll: number): ActionDef | undefined {
   const available = ACTIONS.filter((action) => action.availability(state) && state.focus >= action.focusCost && state.cash >= action.cashCost && action.id !== "allNighter");
-  if (state.week <= 2 && state.outsideCapital === 0) return available.find((action) => action.id === "angel");
+  if (state.week <= 2 && state.cash < 25_000) return available.find((action) => action.id === "bridge");
   if (policy === "research") {
     if (state.evidence.length < 20) return available.find((action) => action.id === "interviewSprint") ?? available.find((action) => action.id === "interview");
     if (state.shippedFeatures.length < 1) return available.find((action) => action.id === "ship");

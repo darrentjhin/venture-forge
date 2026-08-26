@@ -33,6 +33,10 @@ function archiveAndRestart(state: GameState): GameState {
   fresh.cash = Math.max(BALANCE.startingCash, state.founder.cash);
   fresh.reputation = reputation;
   fresh.founder = { ...state.founder, reputation, history, relationships: { ...state.founder.relationships } };
+  fresh.investors.forEach((investor) => {
+    const relationship = fresh.founder.relationships[investor.id];
+    if (relationship !== undefined) { investor.relationship = relationship; investor.discovered = true; }
+  });
   fresh.cards = [{ id: `restart-${fresh.companyNumber}`, kind: "restart", week: fresh.week, icon: "🔁", title: "Back at the desk", body: `Company ${state.companyNumber} is in your history. Company ${fresh.companyNumber} starts now.` }];
   fresh.decisionLog[0] = { ...fresh.decisionLog[0], week: fresh.week, detail: `Started company ${fresh.companyNumber} in a small room.` };
   fresh.history = [{ week: fresh.week, cash: fresh.cash, mrr: 0 }];

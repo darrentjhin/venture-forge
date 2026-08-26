@@ -13,6 +13,7 @@ export function getAction(id: ActionId) { return ACTIONS.find((action) => action
 export function queueAction(state: GameState, actionId: ActionId, target?: string): GameState {
   const definition = getAction(actionId);
   if (!definition || state.crisis.choiceRequired || !definition.availability(state) || state.focus < definition.focusCost || state.cash < definition.cashCost) return state;
+  if (actionId === "bridge" && state.queuedActions.some((action) => action.actionId === "bridge")) return state;
   const next = { ...state, queuedActions: [...state.queuedActions], decisionLog: [...state.decisionLog] };
   next.focus -= definition.focusCost;
   next.day = Math.min(5, next.day + 1);
@@ -91,10 +92,8 @@ export function applyQueuedActions(input: GameState): { state: GameState; notes:
     if (id === "oneOnOne") { const person = state.people.find((item) => item.id === pending.target) ?? [...state.people].sort((a, b) => b.drift - a.drift)[0]; if (person) { person.drift = Math.max(0, person.drift - 20); person.morale = Math.min(100, person.morale + 10); notes.push(`A direct conversation brought ${person.name} closer.`); } }
     if (id === "raise") { const person = [...state.people].sort((a, b) => a.morale - b.morale)[0]; if (person) { person.salaryWeekly += 180; person.morale = Math.min(100, person.morale + 16); } }
     if (id === "letGo") { const person = [...state.people].filter((p) => !p.isCofounder).sort((a, b) => b.salaryWeekly - a.salaryWeekly)[0]; if (person) { state.people = state.people.filter((p) => p.id !== person.id); state.formerPeople.push(person.name); state.people.forEach((p) => { p.morale = Math.max(0, p.morale - 12); }); notes.push(`${person.name} was let go. The empty chair stayed.`); } }
-    if (id === "angel" && state.conviction >= 48) { state.cash += 80_000; state.outsideCapital += 80_000; state.valuation = Math.max(state.valuation, 650_000); notes.push("An angel wired $80,000 for 12% of the company."); }
-    if (id === "seedFund" && state.conviction >= 62 && state.mrr >= 8000) { const seriesA = state.valuation >= 11_400_000; const amount = seriesA ? 2_000_000 : 600_000; state.cash += amount; state.outsideCapital += amount; state.valuation = Math.max(state.valuation + amount, seriesA ? 12_000_001 : 5_000_000); state.raisedSeriesA = seriesA; notes.push(seriesA ? "A Series A closed above a $12M post-money valuation." : "A seed fund invested $600,000. The board seat came with it."); }
-    if (id === "bridge") { state.cash += 50_000; state.outsideCapital += 50_000; state.reputation = Math.max(0, state.reputation - 4); }
-    if (id === "revenueFinance") { const amount = state.mrr * 4; state.cash += amount; state.outsideCapital += amount; }
+    if (id === "bridge") { state.cash += 50_000; state.reputation = Math.max(0, state.reputation - 4); }
+    if (id === "revenueFinance") { const amount = state.mrr * 4; state.cash += amount; }
     if (id === "cutBurn") { state.workspace = downgradeWorkspace(state.workspace); state.people.forEach((p) => { p.morale = Math.max(0, p.morale - 9); }); notes.push("The company moved backward to make the runway longer."); }
     if (id === "weekend") { state.nextFocusBonus += 2; state.people.forEach((p) => { p.morale = Math.min(100, p.morale + 5); }); }
     if (id === "pivot") { state.pivotWeeksRemaining = 3 + Math.floor(state.mrr / 1000) + Math.floor(state.customers.length / 5) + Math.floor(state.people.length / 3); state.people.forEach((p) => { p.morale = Math.max(0, p.morale - 15); }); Object.values(state.beliefs).forEach((belief) => { belief.confidence = 20; }); notes.push(`The pivot began. It will constrain ${state.pivotWeeksRemaining} weeks.`); }

@@ -16,5 +16,8 @@ export function cloneGameState(state: GameState): GameState {
     founder: { ...state.founder, relationships: { ...state.founder.relationships }, history: state.founder.history.map((company) => ({ ...company, history: company.history.map((entry) => ({ ...entry })) })) },
     companyHistory: state.companyHistory.map((entry) => ({ ...entry })), firedMilestones: [...state.firedMilestones], cards: state.cards.map((card) => ({ ...card })), crisis: { ...state.crisis }, quarterReports: state.quarterReports.map((report) => ({ ...report })),
     tasks: state.tasks.map((task) => ({ ...task, assigned: [...task.assigned], reward: { ...task.reward } })), completedTasks: [...state.completedTasks], findings: state.findings.map((finding) => ({ ...finding })), workloads: Object.fromEntries(Object.entries(state.workloads).map(([id, workload]) => [id, { ...workload }])), unlockedApps: [...state.unlockedApps],
+    investors: state.investors.map((investor) => ({ ...investor, thesisSegments: [...investor.thesisSegments], portfolio: [...investor.portfolio], passes: investor.passes.map((pass) => ({ ...pass })) })),
+    rounds: state.rounds.map((round) => ({ ...round, commitments: round.commitments.map((commitment) => ({ ...commitment })), meetings: round.meetings.map((meeting) => ({ ...meeting, outcome: meeting.outcome.kind === "termSheet" ? { kind: "termSheet", sheet: { ...meeting.outcome.sheet } } : { ...meeting.outcome } })) })),
+    capTable: state.capTable.map((entry) => ({ ...entry })),
   };
 }

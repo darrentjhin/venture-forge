@@ -4,10 +4,18 @@ import { buildPostMortem } from "../engine/endings";
 import { newRun } from "../engine/init";
 import { selectRoomStage } from "../engine/selectors";
 import { eventSenderFor } from "../engine/events";
+import { createInvestorRoster, INVESTOR_COUNT } from "../data/investors";
 
 describe("content and acceptance contracts", () => {
+  it("ships forty fictional investors across all five stages", () => {
+    const investors = createInvestorRoster();
+    expect(INVESTOR_COUNT).toBeGreaterThanOrEqual(40);
+    expect(new Set(investors.map((investor) => investor.firm)).size).toBe(investors.length);
+    expect(new Set(investors.map((investor) => investor.kind)).size).toBe(5);
+  });
+
   it("ships at least forty traceable consequence events with no free choice", () => {
-    expect(EVENT_DEFS.length).toBeGreaterThanOrEqual(40);
+    expect(EVENT_DEFS.length).toBeGreaterThanOrEqual(50);
     for (const event of EVENT_DEFS) {
       expect(event.causeType.length).toBeGreaterThan(0);
       expect(eventSenderFor(event.id).trim().split(" ").length).toBeGreaterThanOrEqual(2);

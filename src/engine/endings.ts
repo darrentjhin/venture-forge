@@ -16,7 +16,8 @@ export function evaluateEnding(state: GameState): EndingId | null {
   const quarterAgo = [...state.history].reverse().find((point) => point.week <= state.week - 13)?.mrr ?? 0;
   const growing = state.mrr > quarterAgo;
   const morale = state.people.length ? state.people.reduce((sum, person) => sum + person.morale, 0) / state.people.length : 0;
-  if (profitable && state.people.length + 1 < 12 && morale >= 75 && state.outsideCapital === 0) return "built-to-last";
+  const externallyFinanced = state.outsideCapital > 0 || state.decisionLog.some((decision) => decision.type === "bridge" || decision.type === "revenueFinance");
+  if (profitable && state.people.length + 1 < 12 && morale >= 75 && !externallyFinanced) return "built-to-last";
   if (profitable && growing && alignment > .65) return "alive";
   return "searching";
 }

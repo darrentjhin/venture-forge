@@ -6,10 +6,11 @@ import { resolveEvent as resolveEngineEvent } from "../engine/events";
 import { newRun } from "../engine/init";
 import { advanceWeek } from "../engine/week";
 import { resolveCrisis as resolveEngineCrisis } from "../engine/crisis";
-import type { ActionId, BeliefKey, CrisisChoiceId, GameState, PanelId } from "../engine/types";
+import type { ActionId, BeliefKey, CrisisChoiceId, GameState, InvestorKind, PanelId } from "../engine/types";
 import { migrateGameState } from "./migrate";
 import { assignTask as assignEngineTask, unassignTask as unassignEngineTask } from "../engine/tasks";
 import { drinkCoffee as drinkEngineCoffee } from "../engine/founder";
+import { acceptTermSheet as acceptEngineTermSheet, closeRound as closeEngineRound, counterTermSheet as counterEngineTermSheet, discoverInvestors as discoverEngineInvestors, openRound as openEngineRound, pitchInvestor as pitchEngineInvestor, researchInvestor as researchEngineInvestor, walkFromTermSheet as walkEngineTermSheet, type CounterAxis } from "../engine/fundraising";
 
 interface GameStore {
   game: GameState | null;
@@ -35,6 +36,14 @@ interface GameStore {
   assignTask: (taskId: string, personId: string) => void;
   unassignTask: (taskId: string, personId: string) => void;
   drinkCoffee: () => string | null;
+  openRound: (stage: InvestorKind, targetAmount: number, askPreMoney: number) => void;
+  discoverInvestors: (method: "cold" | "network") => void;
+  researchInvestor: (investorId: string) => void;
+  pitchInvestor: (investorId: string) => void;
+  counterTermSheet: (investorId: string, axis: CounterAxis) => void;
+  acceptTermSheet: (investorId: string) => void;
+  walkFromTermSheet: (investorId: string) => void;
+  closeRound: () => void;
   toggleHelp: () => void;
   toggleMuted: () => void;
 }
@@ -72,14 +81,22 @@ export const useGame = create<GameStore>()(persist((set) => ({
     });
     return message;
   },
+  openRound: (stage, targetAmount, askPreMoney) => set((store) => store.game ? { game: openEngineRound(store.game, stage, targetAmount, askPreMoney) } : {}),
+  discoverInvestors: (method) => set((store) => store.game ? { game: discoverEngineInvestors(store.game, method) } : {}),
+  researchInvestor: (investorId) => set((store) => store.game ? { game: researchEngineInvestor(store.game, investorId) } : {}),
+  pitchInvestor: (investorId) => set((store) => store.game ? { game: pitchEngineInvestor(store.game, investorId) } : {}),
+  counterTermSheet: (investorId, axis) => set((store) => store.game ? { game: counterEngineTermSheet(store.game, investorId, axis) } : {}),
+  acceptTermSheet: (investorId) => set((store) => store.game ? { game: acceptEngineTermSheet(store.game, investorId) } : {}),
+  walkFromTermSheet: (investorId) => set((store) => store.game ? { game: walkEngineTermSheet(store.game, investorId) } : {}),
+  closeRound: () => set((store) => store.game ? { game: closeEngineRound(store.game) } : {}),
   toggleHelp: () => set((store) => ({ helpOpen: !store.helpOpen })),
   toggleMuted: () => set((store) => ({ muted: !store.muted })),
 }), {
   name: "venture-forge-v3",
-  version: 6,
+  version: 7,
   migrate: (persisted) => {
     const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean } : {};
     return { ...old, game: migrateGameState(old.game) };
   },
-  partialize: (store) => ({ game: store.game?.version === 6 ? store.game : null, muted: store.muted }),
+  partialize: (store) => ({ game: store.game?.version === 7 ? store.game : null, muted: store.muted }),
 }));

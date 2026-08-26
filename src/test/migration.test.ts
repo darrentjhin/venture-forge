@@ -9,7 +9,7 @@ describe("save migration", () => {
     const legacy: Record<string, unknown> = { ...current, version: 3 };
     for (const key of ["companyNumber", "companyStartedWeek", "founder", "companyHistory", "firedMilestones", "cards", "crisis", "emergencyLoanBalance", "workspaceCap", "quarterReports", "officeBeat", "tasks", "completedTasks", "taskSerial", "taskMrr", "findings", "workloads", "unlockedApps"]) delete legacy[key];
     const migrated = migrateGameState(legacy);
-    expect(migrated?.version).toBe(6);
+    expect(migrated?.version).toBe(7);
     expect(migrated?.seed).toBe(95);
     expect(migrated?.companyNumber).toBe(1);
     expect(migrated?.tasks).toHaveLength(4);
@@ -21,7 +21,7 @@ describe("save migration", () => {
     const legacy: Record<string, unknown> = { ...current, version: 4 };
     for (const key of ["tasks", "completedTasks", "taskSerial", "taskMrr", "findings", "workloads", "unlockedApps"]) delete legacy[key];
     const migrated = migrateGameState(legacy);
-    expect(migrated?.version).toBe(6);
+    expect(migrated?.version).toBe(7);
     expect(migrated?.tasks.map((task) => task.title)).toContain("Interview five customers");
   });
 
@@ -32,8 +32,18 @@ describe("save migration", () => {
     delete founder.coffeeToday;
     delete founder.jittery;
     const migrated = migrateGameState({ ...current, version: 5, founder });
-    expect(migrated?.version).toBe(6);
+    expect(migrated?.version).toBe(7);
     expect(migrated?.founder.coffeeToday).toBe(0);
     expect(migrated?.founder.jittery).toBe(false);
+  });
+
+  it("adds investors and a ten-million-share cap table to a version 6 save", () => {
+    const current = newRun(98);
+    const legacy: Record<string, unknown> = { ...current, version: 6 };
+    for (const key of ["investors", "rounds", "capTable", "activeRoundId"]) delete legacy[key];
+    const migrated = migrateGameState(legacy);
+    expect(migrated?.version).toBe(7);
+    expect(migrated?.investors).toHaveLength(40);
+    expect(migrated?.capTable.reduce((sum, entry) => sum + entry.shares, 0)).toBe(10_000_000);
   });
 });

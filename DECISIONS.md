@@ -2,6 +2,10 @@
 
 ## Simulation
 
+- Equity money is derived only from closed round commitments. Bridge notes and revenue financing remain cash tools, but neither silently creates cap-table ownership.
+- Investor research spends founder Focus immediately and resolves at the next weekly tick. Pitches can happen before research, preserving the deliberate information disadvantage.
+- A pre-money option-pool top-up is solved algebraically before investor shares are issued, so it dilutes existing holders while the incoming investor still receives exactly `amount / post-money`.
+- Accepting a term sheet records a commitment; money and shares move only when the player explicitly closes a lead-backed round.
 - Delegated tasks cost no founder Focus. Each assignee divides weekly output across their active tasks, and any split applies a 15% switching loss. Three simultaneous tasks for three weeks begins visible burnout.
 - Research completion writes a plain-language finding but does not improve Fit by itself. Completing customer-facing product, design, or support work acts on the oldest unused finding and moves one underlying market answer toward truth.
 - Revenue earned by repeatable task work is tracked separately from account revenue so the weekly customer recalculation cannot erase it.
@@ -18,6 +22,7 @@
 
 ## Balance tuning
 
+- Bridge notes no longer pretend to be equity in `outsideCapital`, but a bridge-financed company does not qualify for the “built to last” benchmark. A queued bridge can execute only once per week, closing an old duplicate-action loophole while keeping the intended $50,000 lifeline.
 - The 2,000-run suite currently produces a 22.35% overall win rate. Research-heavy play wins 50.60% of runs and greedy-revenue play wins 0%, a 50.60-point research advantage.
 - Normal churn only damages reputation when it materially outruns acquisition. Penalizing every individual churn made successful aligned companies collapse at scale even while net retention was healthy.
 

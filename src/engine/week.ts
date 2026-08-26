@@ -11,6 +11,7 @@ import { fireNextMilestone } from "./milestones";
 import { computeFocus, updatePeople } from "./people";
 import type { Customer, GameState, Workspace } from "./types";
 import { addWeeklyTask, processTasks } from "./tasks";
+import { processFundraisingWeek } from "./fundraising";
 
 function customerSegment(state: GameState, index: number, alignment: number): SegmentId {
   if (alignment >= .58) return index % 4 === 3 ? state.truth.secondaryBuyer : state.truth.buyer;
@@ -123,6 +124,7 @@ export function advanceWeek(input: GameState): GameState {
   }
   if (state.totalCustomersWon > 0 && !state.unlockedApps.includes("stats")) state.unlockedApps.push("stats");
   addWeeklyTask(state);
+  processFundraisingWeek(state);
   const crisisResult = processCrisis(state);
   if (crisisResult !== state) return crisisResult;
   state.week += 1;

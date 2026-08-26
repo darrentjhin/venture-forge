@@ -8,7 +8,7 @@ import { advanceWeek } from "../engine/week";
 
 function scripted(seed: number): GameState {
   let state = newRun(seed);
-  const weeks: ActionId[][] = [["angel", "interview"], ["interviewSprint"], ["ship", "coldOutreach"], ["landingPage", "salesCall"], ["harden", "content"], ["weekend", "teardown"]];
+  const weeks: ActionId[][] = [["bridge", "interview"], ["interviewSprint"], ["ship", "coldOutreach"], ["landingPage", "salesCall"], ["harden", "content"], ["weekend", "teardown"]];
   for (const actions of weeks) {
     for (const action of actions) state = queueAction(state, action);
     state = advanceWeek(state);
