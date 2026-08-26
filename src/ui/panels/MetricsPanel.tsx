@@ -1,0 +1,9 @@
+import { selectBurn, selectWeeklyRevenue } from "../../engine/selectors";
+import type { GameState } from "../../engine/types";
+import { NumberValue } from "../Number";
+import { ActionList } from "../ActionList";
+
+export function MetricsPanel({ game }: { game: GameState }) {
+  const revenue = selectWeeklyRevenue(game); const burn = selectBurn(game); const recent = game.weeklyReports.at(-1);
+  return <div className="panel-stack"><p className="panel-intro">The market never reports alignment. It reports outcomes: who converts, who stays, and what they pay.</p><div className="metric-grid"><article><span>MRR</span><strong><NumberValue value={Math.round(game.mrr)} prefix="$"/></strong><small>{game.mrr > game.previousMrr ? `+$${Math.round(game.mrr-game.previousMrr).toLocaleString()} this week` : "No growth this week"}</small></article><article><span>Pipeline</span><strong><NumberValue value={Math.floor(game.pipeline)}/></strong><small>active prospects</small></article><article><span>Customers</span><strong><NumberValue value={game.customers.length}/></strong><small>{game.churnedCustomers} churned all-time</small></article><article><span>Net / week</span><strong className={revenue-burn >= 0 ? "positive" : "danger"}><NumberValue value={Math.abs(Math.round(revenue-burn))} prefix={revenue-burn>=0?"+$":"−$"}/></strong><small>${Math.round(revenue).toLocaleString()} revenue · ${Math.round(burn).toLocaleString()} burn</small></article></div>{recent && <section className="signal-block"><span className="eyebrow">LAST MARKET ANSWER</span><p>{recent.newCustomers} converted. {recent.churned} left. {recent.notes.find((note) => note.includes("customer")) ?? "The signal was quiet."}</p></section>}<div className="section-title"><span className="eyebrow">SELL</span><h3>Make the market answer</h3></div><ActionList game={game} group="metrics"/></div>;
+}

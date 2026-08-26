@@ -31,6 +31,7 @@ export function playSfx(name: SfxName, muted: boolean) {
 }
 
 export function setDread(level: number, muted: boolean) {
+  if (!context) return;
   const graph = audio(); if (!graph) return;
   if (!dreadOscillator || !dreadGain) { dreadOscillator = graph.context.createOscillator(); dreadGain = graph.context.createGain(); dreadOscillator.type = "sine"; dreadOscillator.frequency.value = 55; dreadGain.gain.value = 0; dreadOscillator.connect(dreadGain); dreadGain.connect(graph.master); dreadOscillator.start(); }
   dreadGain.gain.cancelScheduledValues(graph.context.currentTime); dreadGain.gain.linearRampToValueAtTime(muted ? 0 : Math.min(.04, level * .01), graph.context.currentTime + .5);
