@@ -11,6 +11,9 @@ import { Title } from "./ui/Title";
 import { WeekReport } from "./ui/WeekReport";
 import { CrisisCard } from "./ui/CrisisCard";
 import { GameCard } from "./ui/GameCard";
+import type { PanelId } from "./engine/types";
+
+const PANEL_KEYS: Record<string, PanelId> = { "1": "metrics", "2": "notebook", "3": "inbox", "4": "roadmap", "5": "team", "6": "capital" };
 
 export function App() {
   const screen = useGame((store) => store.screen);
@@ -29,6 +32,8 @@ export function App() {
     if (screen !== "game") return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") { openPanel(null); return; }
+      const destination = PANEL_KEYS[event.key];
+      if (destination) { openPanel(destination); return; }
       if (event.key === "?" || (event.key === "/" && event.shiftKey)) { event.preventDefault(); toggleHelp(); }
     }
     window.addEventListener("keydown", onKey);

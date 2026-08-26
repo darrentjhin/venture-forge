@@ -2,6 +2,10 @@
 
 ## Simulation
 
+- Delegated tasks cost no founder Focus. Each assignee divides weekly output across their active tasks, and any split applies a 15% switching loss. Three simultaneous tasks for three weeks begins visible burnout.
+- Research completion writes a plain-language finding but does not improve Fit by itself. Completing customer-facing product, design, or support work acts on the oldest unused finding and moves one underlying market answer toward truth.
+- Revenue earned by repeatable task work is tracked separately from account revenue so the weekly customer recalculation cannot erase it.
+
 - Week 104 is now a year-one benchmark, not a stop. The career calendar derives `year` and `weekOfYear` from the same monotonically increasing week so old deterministic seeds remain reproducible.
 - A company closes only after two consecutive negative weeks. Closure archives its full milestone history and starts the next company from a small room; founder reputation, cash reserve, network, and relationships survive.
 - Emergency loans provide $20,000 and charge 18% of the outstanding balance every week. The deliberately punitive rate makes them a bridge to immediate growth, not free runway.

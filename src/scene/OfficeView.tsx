@@ -104,7 +104,7 @@ export function OfficeView({ state, onOpen, onHoverPerson }: {
         const { x, y } = toScreen(object.tx, object.ty, origin);
         hits.push(drawObject(ctx, object.kind, object.panel, x, y, {
           hovered: hoveredPanel === object.panel,
-          badge: object.panel === "notebook" ? unread : object.panel === "inbox" ? state.pendingEvents.length : 0,
+          badge: object.panel === "notebook" ? unread + state.findings.filter((item) => !item.actedOn).length : object.panel === "inbox" ? state.pendingEvents.length + state.tasks.length : 0,
           pulse: object.panel === "metrics" ? metricPulse : object.panel === "capital" ? state.conviction >= 55 : false,
           frame,
         }));

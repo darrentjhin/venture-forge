@@ -436,6 +436,39 @@ p { margin: 0; }
 .company-archive summary { cursor: pointer; font-weight: 700; font-size: 13px; }
 .company-archive p, .company-archive small { display: block; margin-top: 7px; color: var(--ink-soft); font-size: 11px; }
 
+.phone-shell { min-height: 100%; margin: -20px -22px -26px; background: #11151c; color: #f4f1e8; }
+.phone-top { position: sticky; top: 0; z-index: 3; display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 10px; padding: 13px 15px; background: #1b2029; border-bottom: 1px solid #313947; }
+.phone-top button { width: 32px; height: 32px; border-radius: 9px; background: #2a3240; color: #fff; font-size: 24px; }
+.phone-top strong { font-size: 15px; }
+.phone-top > span { font-family: var(--mono); font-size: 9px; color: #8994a5; }
+.phone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 12px; padding: 28px 22px; }
+.phone-grid button { position: relative; display: grid; justify-items: center; gap: 7px; color: #eef2f7; font-size: 11px; }
+.phone-grid button > span { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(145deg, #516173, #283341); border: 1px solid #68788b; box-shadow: 0 4px 10px rgba(0,0,0,.3); font-family: var(--mono); font-size: 23px; }
+.phone-grid button:nth-child(2) > span { background: linear-gradient(145deg, #4f8b78, #27574a); }
+.phone-grid button:nth-child(3) > span { background: linear-gradient(145deg, #b77856, #74452f); }
+.phone-grid button:nth-child(4) > span { background: linear-gradient(145deg, #557bb2, #294d7d); }
+.phone-grid button:nth-child(5) > span { background: linear-gradient(145deg, #8f6faf, #503e6b); }
+.phone-grid button > b { position: absolute; top: -5px; right: calc(50% - 33px); min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 9px; background: #ef5d4f; color: #fff; font: 700 9px var(--mono); }
+.phone-app { padding: 14px; }
+.phone-people { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; }
+.phone-people button { flex: none; min-width: 135px; text-align: left; padding: 9px 10px; border: 1px solid #384355; border-radius: 8px; color: #e9edf3; background: #202733; }
+.phone-people button.selected { border-color: #e9b85d; box-shadow: inset 0 0 0 1px #e9b85d; }
+.phone-people b, .phone-people span { display: block; }
+.phone-people b { font-size: 11px; }.phone-people span { margin-top: 2px; color: #8f9bac; font: 9px var(--mono); }
+.phone-hint { margin: 10px 2px 14px; color: #8f9bac; font-size: 10px; line-height: 1.45; }
+.task-list { display: grid; gap: 9px; }
+.task-card { padding: 13px; border: 1px solid #354052; border-radius: 9px; background: #1b222d; }
+.task-head { display: grid; grid-template-columns: 9px 1fr auto; align-items: center; gap: 9px; }
+.task-head strong, .task-head small { display: block; }.task-head strong { font-size: 12.5px; }.task-head small { margin-top: 2px; color: #8994a5; font: 8.5px var(--mono); text-transform: uppercase; }.task-head > b { color: #cdd5df; font: 10px var(--mono); }
+.skill-dot { width: 8px; height: 8px; border-radius: 50%; background: #7aa2c8; }.skill-engineering { background: #64b5a0; }.skill-design { background: #c38ccf; }.skill-sales { background: #e0a55d; }.skill-support { background: #719fe2; }.skill-ops { background: #b9bd75; }.skill-research { background: #d77972; }
+.task-card > p { margin: 8px 0; color: #aab3c0; font-size: 10.5px; line-height: 1.45; }
+.task-progress { height: 5px; overflow: hidden; border-radius: 3px; background: #303947; }.task-progress i { display: block; height: 100%; border-radius: 3px; background: #64b5a0; transition: width .4s ease; }
+.task-assigned { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; }.task-assigned button { padding: 4px 7px; border-radius: 5px; background: #2d3948; color: #d7dee7; font-size: 9px; }.task-assigned .assign-person { border: 1px dashed #748195; background: transparent; }
+.task-card > em, .phone-team em { display: block; margin-top: 7px; color: #e5aa5e; font: 9px var(--mono); }
+.phone-messages { display: grid; gap: 10px; }.phone-message { padding: 13px; border: 1px solid #343f50; border-radius: 9px; background: #1c232e; }.phone-message.unread { border-left: 3px solid #e4a657; }.phone-message header { display: flex; gap: 9px; align-items: center; }.phone-avatar { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #4f6176; color: #fff; font-weight: 800; }.phone-message header strong,.phone-message header small { display: block; }.phone-message header small { color: #8e99a9; font: 8.5px var(--mono); }.phone-message h3 { margin: 11px 0 5px; font-size: 16px; }.phone-message > p { color: #aeb7c4; font-size: 11px; line-height: 1.5; }
+.phone-team { display: grid; grid-template-columns: 36px 1fr; gap: 10px; padding: 12px; margin-bottom: 8px; border: 1px solid #343f50; border-radius: 9px; background: #1c232e; }.phone-team strong,.phone-team small { display: block; }.phone-team strong { font-size: 12px; }.phone-team small,.phone-team p { margin-top: 3px; color: #8e99a9; font: 8.5px var(--mono); }.phone-team .task-progress { margin-top: 8px; }
+.phone-ledger { display: grid; gap: 8px; margin-bottom: 20px; }.phone-ledger > div { display: flex; justify-content: space-between; gap: 20px; padding: 13px; border-radius: 8px; background: #1c232e; border: 1px solid #343f50; }.phone-ledger span { color: #9ba6b5; font-size: 11px; }.phone-ledger strong { font: 700 12px var(--mono); }.phone-ledger .bad strong { color: #ef8273; }
+
 /* ============================================================
    POST-MORTEM
    ============================================================ */

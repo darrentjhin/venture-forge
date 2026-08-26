@@ -8,6 +8,7 @@ import { advanceWeek } from "../engine/week";
 import { resolveCrisis as resolveEngineCrisis } from "../engine/crisis";
 import type { ActionId, BeliefKey, CrisisChoiceId, GameState, PanelId } from "../engine/types";
 import { migrateGameState } from "./migrate";
+import { assignTask as assignEngineTask, unassignTask as unassignEngineTask } from "../engine/tasks";
 
 interface GameStore {
   game: GameState | null;
@@ -30,6 +31,8 @@ interface GameStore {
   resolveEvent: (eventId: string, choiceId: string) => void;
   resolveCrisis: (choice: CrisisChoiceId, personId?: string) => void;
   dismissCard: () => void;
+  assignTask: (taskId: string, personId: string) => void;
+  unassignTask: (taskId: string, personId: string) => void;
   toggleHelp: () => void;
   toggleMuted: () => void;
 }
@@ -55,14 +58,16 @@ export const useGame = create<GameStore>()(persist((set) => ({
   resolveEvent: (eventId, choiceId) => set((store) => store.game ? { game: resolveEngineEvent(store.game, eventId, choiceId) } : {}),
   resolveCrisis: (choice, personId) => set((store) => store.game ? { game: resolveEngineCrisis(store.game, choice, personId) } : {}),
   dismissCard: () => set((store) => store.game ? { game: { ...store.game, cards: store.game.cards.slice(1) } } : {}),
+  assignTask: (taskId, personId) => set((store) => store.game ? { game: assignEngineTask(store.game, taskId, personId) } : {}),
+  unassignTask: (taskId, personId) => set((store) => store.game ? { game: unassignEngineTask(store.game, taskId, personId) } : {}),
   toggleHelp: () => set((store) => ({ helpOpen: !store.helpOpen })),
   toggleMuted: () => set((store) => ({ muted: !store.muted })),
 }), {
   name: "venture-forge-v3",
-  version: 4,
+  version: 5,
   migrate: (persisted) => {
     const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean } : {};
     return { ...old, game: migrateGameState(old.game) };
   },
-  partialize: (store) => ({ game: store.game?.version === 4 ? store.game : null, muted: store.muted }),
+  partialize: (store) => ({ game: store.game?.version === 5 ? store.game : null, muted: store.muted }),
 }));

@@ -10,6 +10,7 @@ import { evaluateEvents } from "./events";
 import { fireNextMilestone } from "./milestones";
 import { computeFocus, updatePeople } from "./people";
 import type { Customer, GameState, Workspace } from "./types";
+import { addWeeklyTask, processTasks } from "./tasks";
 
 function customerSegment(state: GameState, index: number, alignment: number): SegmentId {
   if (alignment >= .58) return index % 4 === 3 ? state.truth.secondaryBuyer : state.truth.buyer;
@@ -41,6 +42,7 @@ export function advanceWeek(input: GameState): GameState {
   const applied = applyQueuedActions(input);
   const state = applied.state;
   const notes = [...applied.notes];
+  notes.push(...processTasks(state));
 
   state.focus = computeFocus(state);
   state.nextFocusBonus = state.nextFocusBonus > 0 ? 0 : Math.min(0, state.nextFocusBonus + 1);
@@ -53,7 +55,7 @@ export function advanceWeek(input: GameState): GameState {
   if (newCustomers) notes.push(`${newCustomers} customer${newCustomers === 1 ? "" : "s"} converted from the active pipeline.`);
 
   state.previousMrr = state.mrr;
-  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0);
+  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0) + state.taskMrr;
   const weeklyRevenue = state.mrr / 4.33;
 
   const weeklyChurn = churnRate(state, alignment) * (state.pivotWeeksRemaining > 0 ? 1.6 : 1);
@@ -68,7 +70,7 @@ export function advanceWeek(input: GameState): GameState {
     state.churnedCustomers += churnCount;
     notes.push(`${churnCount} customer${churnCount === 1 ? "" : "s"} left. The weakest-fit accounts went first.`);
   }
-  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0);
+  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0) + state.taskMrr;
 
   const burn = weeklyBurn(state);
   const financingDrag = state.outsideCapital > 0 && state.mrr > 0 ? Math.min(state.mrr / 13, weeklyRevenue * .16) : 0;
@@ -119,6 +121,8 @@ export function advanceWeek(input: GameState): GameState {
     state.companyHistory.push(milestone);
     state.cards.push({ ...milestone, kind: "milestone" });
   }
+  if (state.totalCustomersWon > 0 && !state.unlockedApps.includes("stats")) state.unlockedApps.push("stats");
+  addWeeklyTask(state);
   const crisisResult = processCrisis(state);
   if (crisisResult !== state) return crisisResult;
   state.week += 1;

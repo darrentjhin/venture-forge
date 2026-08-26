@@ -7,16 +7,18 @@ import { CHURN_DRIVERS, CHURN_LABELS, type ChurnDriverId } from "../data/churnDr
 import { FEATURES, FEATURE_LABELS, type FeatureId } from "../data/features";
 import { SEGMENTS, SEGMENT_LABELS, type SegmentId } from "../data/segments";
 import { selectBurn, selectRunway, selectRunwayDisplay, selectWeeklyRevenue, selectWorkspaceCost } from "../engine/selectors";
+import { alignmentFor } from "../engine/beliefs";
 import type { BeliefKey, EvidenceCard, GameState, PanelId, Person } from "../engine/types";
 import { useGame } from "../store/useGame";
 import { ActionList } from "./ActionList";
 import { NumberValue } from "./Number";
 import { Sparkline } from "./Sparkline";
+import { Phone } from "./phone/Phone";
 
 const PANEL_META: Record<PanelId, { title: string; blurb: string }> = {
   metrics: { title: "The laptop", blurb: "Money, customers, and the price you are charging for the thing you have." },
   notebook: { title: "The notebook", blurb: "Everything the market has told you — and what you have decided to believe." },
-  inbox: { title: "The phone", blurb: "Consequences arriving from decisions you already made." },
+  inbox: { title: "The phone", blurb: "Work, messages, people, money, and the numbers—inside the object on your desk." },
   roadmap: { title: "The whiteboard", blurb: "What is built, what is next, and what the shortcuts are costing." },
   team: { title: "The door", blurb: "The people carrying the company, and how close they are to leaving." },
   capital: { title: "The filing cabinet", blurb: "Valuation, outside money, and the gap between your story and your evidence." },
@@ -67,6 +69,7 @@ function MetricsPanel({ game }: { game: GameState }) {
   const net = revenue - burn;
   const runway = selectRunway(game);
   const history = game.history.slice(-30);
+  const fit = Math.round(alignmentFor(game.beliefs, game.truth) * 100);
 
   return <>
     <div className="section">
@@ -80,6 +83,7 @@ function MetricsPanel({ game }: { game: GameState }) {
         <div className={`metric ${net >= 0 ? "good" : ""}`}><small>Net / week</small><strong>{net >= 0 ? "+" : "−"}${Math.abs(Math.round(net)).toLocaleString()}</strong><em>${Math.round(revenue).toLocaleString()} in · ${Math.round(burn).toLocaleString()} out</em></div>
         <div className="metric"><small>Customers</small><strong>{game.customers.length}</strong><em>{game.churnedCustomers} churned all-time</em></div>
         <div className="metric"><small>Pipeline</small><strong>{Math.round(game.pipeline)}</strong><em>prospects not yet converted</em></div>
+        <div className={`metric ${fit >= 65 ? "good" : fit < 30 ? "bad" : "warn"}`}><small>Fit</small><strong>{fit}/100</strong><em>{fit >= 65 ? "customers keep returning" : fit >= 35 ? "some pieces are landing" : "the market is pushing back"}</em></div>
         <div className="metric"><small>Reputation</small><strong>{Math.round(game.reputation)}</strong><em>{game.reputation < 20 ? "fragile" : game.reputation > 55 ? "credible" : "unproven"}</em></div>
       </div>
     </div>
@@ -124,6 +128,20 @@ function MetricsPanel({ game }: { game: GameState }) {
         })}
       </div>
     </div>}
+  </>;
+}
+
+function FindingsPanel({ game }: { game: GameState }) {
+  const cards = [...game.findings].reverse();
+  return <>
+    <div className="section">
+      <span className="eyebrow">Findings · {cards.length}</span>
+      {cards.length === 0 ? <div className="empty"><strong>No pattern yet.</strong><p>Assign customer interviews, ticket reviews, or sales shadowing in the phone.</p></div> : <div className="evidence">{cards.map((finding) => <div className={`ev-card ${finding.actedOn ? "" : "unread"}`} key={finding.id}><div className="ev-head"><strong>{finding.from}</strong><span>week {finding.week}</span></div><blockquote>“{finding.text}”</blockquote><div className="ev-tags"><span className="ev-tag">{finding.actedOn ? "acted on" : "not acted on"}</span></div></div>)}</div>}
+    </div>
+    <div className="section">
+      <span className="eyebrow">Customer notes</span>
+      <div className="evidence">{[...game.evidence].reverse().slice(0, 30).map((card) => <div className="ev-card" key={card.id}><div className="ev-head"><strong>{card.source}</strong><span>week {card.week}</span></div><blockquote>“{card.quote}”</blockquote></div>)}</div>
+    </div>
   </>;
 }
 
@@ -416,8 +434,8 @@ export function Panel({ id, game }: { id: PanelId; game: GameState }) {
       </header>
       <div className="panel-body">
         {id === "metrics" && <MetricsPanel game={game}/>}
-        {id === "notebook" && <NotebookPanel game={game}/>}
-        {id === "inbox" && <InboxPanel game={game}/>}
+        {id === "notebook" && <FindingsPanel game={game}/>}
+        {id === "inbox" && <Phone game={game}/>}
         {id === "roadmap" && <RoadmapPanel game={game}/>}
         {id === "team" && <TeamPanel game={game}/>}
         {id === "capital" && <CapitalPanel game={game}/>}

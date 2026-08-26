@@ -3,12 +3,14 @@ import { EVENT_DEFS } from "../data/eventDefs";
 import { buildPostMortem } from "../engine/endings";
 import { newRun } from "../engine/init";
 import { selectRoomStage } from "../engine/selectors";
+import { eventSenderFor } from "../engine/events";
 
 describe("content and acceptance contracts", () => {
   it("ships at least forty traceable consequence events with no free choice", () => {
     expect(EVENT_DEFS.length).toBeGreaterThanOrEqual(40);
     for (const event of EVENT_DEFS) {
       expect(event.causeType.length).toBeGreaterThan(0);
+      expect(eventSenderFor(event.id).trim().split(" ").length).toBeGreaterThanOrEqual(2);
       expect(event.choices.length).toBeGreaterThanOrEqual(2);
       event.choices.forEach((choice) => expect(choice.focusCost + choice.cashCost).toBeGreaterThan(0));
     }

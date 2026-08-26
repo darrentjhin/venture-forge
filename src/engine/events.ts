@@ -1,6 +1,10 @@
 import { EVENT_DEFS } from "../data/eventDefs";
 import { cloneGameState } from "./clone";
 import type { GameEvent, GameState } from "./types";
+import { NAMES } from "../data/nameBank";
+import { hashString } from "./rng";
+
+export function eventSenderFor(id: string): string { return NAMES[hashString(id) % NAMES.length]; }
 
 export function evaluateEvents(state: GameState): GameEvent[] {
   return EVENT_DEFS
@@ -9,7 +13,7 @@ export function evaluateEvents(state: GameState): GameEvent[] {
     .slice(0, 2)
     .map((definition) => {
       const decision = [...state.decisionLog].reverse().find((item) => item.type === definition.causeType);
-      return { id: definition.id, causeRef: decision?.id ?? "origin", cause: definition.cause(state), headline: definition.headline, body: definition.body, choices: definition.choices };
+      return { id: definition.id, causeRef: decision?.id ?? "origin", cause: definition.cause(state), sender: eventSenderFor(definition.id), headline: definition.headline, body: definition.body, choices: definition.choices };
     });
 }
 

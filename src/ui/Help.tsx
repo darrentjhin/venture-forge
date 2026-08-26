@@ -15,11 +15,10 @@ export function Help() {
         <p>The only question is whether you find out before the money does.</p>
       </header>
       <div className="report-body help-body">
-        <h3>The hidden truth</h3>
+        <h3>Start with the phone</h3>
         <p>
-          Every seed generates a market with one correct answer for each of five dimensions: <strong>buyer</strong>,
-          <strong> must-have feature</strong>, <strong>price</strong>, <strong>where customers find you</strong>, and <strong>why customers leave</strong>.
-          You start with imperfect guesses. Customer conversations and actual behaviour reveal what is wrong.
+          Open the phone on your desk, choose Tasks, and assign work to a person. Their strongest skills finish that work faster.
+          Putting someone on several tasks splits their week and eventually burns them out.
         </p>
 
         <h3>Focus is the real currency</h3>
@@ -28,17 +27,15 @@ export function Help() {
           Focus. Cash buys some things, but Focus is what you never have enough of.
         </p>
 
-        <h3>Evidence lies sometimes</h3>
+        <h3>Customer notes disagree sometimes</h3>
         <p>
-          Interviews produce evidence cards pointing at a value with a <strong>strength</strong>. A single interview is noisy —
-          roughly a quarter of them mislead. Sprints, landing pages, win/loss reviews and churn autopsies are more expensive
-          and more honest. The number on a chip in the notebook is the total evidence weight behind that option.
+          A single conversation is noisy. Assign research work, read the notebook, and look for the sentence that keeps repeating.
+          Shipping work based on a real finding is what moves the Fit meter on the monitor.
         </p>
 
-        <h3>Beliefs drive the economy</h3>
+        <h3>Fit drives the economy</h3>
         <p>
-          Your committed beliefs — not the truth — determine who converts, at what rate, and how fast they churn.
-          Knowing who pays and what they cannot live without matters most. Listen before you scale.
+          Better Fit brings more customers and keeps them longer. The monitor shows one score; customer messages tell you why it moved.
         </p>
 
         <h3>Your story versus your proof</h3>

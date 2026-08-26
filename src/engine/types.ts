@@ -13,6 +13,8 @@ export type PanelId = "metrics" | "notebook" | "inbox" | "roadmap" | "team" | "c
 export type EndingId = "alive" | "acquisition" | "series-a" | "built-to-last" | "cash" | "team" | "reputation" | "searching";
 export type CrisisChoiceId = "layoff" | "loan" | "sellOffice";
 export type CompanyHistoryKind = "milestone" | "quarter" | "crisis" | "restart";
+export type Skill = "engineering" | "design" | "sales" | "support" | "ops" | "research";
+export type PhoneAppId = "tasks" | "inbox" | "team" | "bank" | "stats";
 
 export interface MarketTruth { buyer: SegmentId; secondaryBuyer: SegmentId; willingnessToPay: number; wedgeFeature: FeatureId; supportFeature: FeatureId; decoyFeatures: FeatureId[]; churnDriver: ChurnDriverId; channel: ChannelId; demandInflectionWeek: number; competitorAggression: number; }
 export interface Hypothesis<T> { value: T; confidence: number; committedWeek: number; }
@@ -24,7 +26,7 @@ export interface Customer { id: string; name: string; segment: SegmentId; mrr: n
 export interface Decision { id: string; week: number; type: string; detail: string; refId: string; impact: number; alternate?: string; }
 export interface EventChoice { id: string; label: string; detail: string; focusCost: number; cashCost: number; effect: EventEffect; }
 export interface EventEffect { cash?: number; reputation?: number; morale?: number; conviction?: number; techDebt?: number; drift?: number; pipeline?: number; overclaim?: number; acceptEnding?: EndingId; }
-export interface GameEvent { id: string; causeRef: string; cause: string; headline: string; body: string; choices: EventChoice[]; }
+export interface GameEvent { id: string; causeRef: string; cause: string; sender: string; headline: string; body: string; choices: EventChoice[]; }
 export interface PendingAction { id: string; actionId: ActionId; target?: string; label: string; focusCost: number; cashCost: number; }
 export interface HistoryPoint { week: number; cash: number; mrr: number; }
 export interface WeekReport { week: number; cashDelta: number; revenue: number; burn: number; newCustomers: number; churned: number; notes: string[]; }
@@ -35,8 +37,12 @@ export interface FounderLegacy { cash: number; reputation: number; network: numb
 export interface CrisisState { active: boolean; choiceRequired: boolean; consecutiveNegativeWeeks: number; enteredWeek: number | null; crisesSurvived: number; }
 export interface GameCard { id: string; kind: "milestone" | "quarter" | "restart"; week: number; title: string; body: string; icon: string; }
 export interface QuarterReport { year: number; quarter: number; week: number; grade: "A" | "B" | "C" | "D"; title: string; body: string; officeBeat: "plant" | "paint" | "delivery"; }
+export interface TaskReward { cash?: number; mrr?: number; reputation?: number; fit?: number; techDebt?: number; shipsFeature?: FeatureId; unlocksTask?: string; }
+export interface Task { id: string; title: string; detail: string; skill: Skill; effort: number; progress: number; assigned: string[]; source: "backlog" | "event" | "customer" | "investor" | "milestone"; reward: TaskReward; expiresWeek: number | null; createdWeek: number; }
+export interface Finding { id: string; week: number; from: string; text: string; actedOn: boolean; }
+export interface Workload { overworkWeeks: number; burnout: number; }
 export interface GameState {
-  version: 4; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
+  version: 5; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
   truth: MarketTruth; beliefs: Beliefs; evidence: EvidenceCard[]; conviction: number; evidenceScore: number; overclaim: number; quietCorrectWeeks: number;
   pipeline: number; customers: Customer[]; churnPressure: number; churnedCustomers: number; closedDeals: number; mrr: number; previousMrr: number; price: number; reputation: number;
   shippedFeatures: FeatureId[]; selectedFeature: FeatureId; techDebt: number; onboardingQuality: number; people: Person[]; formerPeople: string[]; workspace: Workspace; headcountHistory: number[];
@@ -45,6 +51,7 @@ export interface GameState {
   totalCustomersWon: number; weeklyReports: WeekReport[]; history: HistoryPoint[]; ending: EndingId | null; postMortem: PostMortem | null;
   companyNumber: number; companyStartedWeek: number; founder: FounderLegacy; companyHistory: CompanyHistoryEntry[]; firedMilestones: string[]; cards: GameCard[];
   crisis: CrisisState; emergencyLoanBalance: number; workspaceCap: Workspace | null; quarterReports: QuarterReport[]; officeBeat: number;
+  tasks: Task[]; completedTasks: string[]; taskSerial: number; taskMrr: number; findings: Finding[]; workloads: Record<string, Workload>; unlockedApps: PhoneAppId[];
 }
 
 export type ActionId = "interview" | "interviewSprint" | "landingPage" | "churnAutopsy" | "winLoss" | "teardown" | "ship" | "harden" | "onboarding" | "payDebt" | "spike" | "coldOutreach" | "salesCall" | "communityLaunch" | "content" | "paidAds" | "enterpriseDeal" | "postRole" | "interviewCandidate" | "offer" | "oneOnOne" | "raise" | "letGo" | "angel" | "seedFund" | "bridge" | "revenueFinance" | "cutBurn" | "weekend" | "pivot" | "rewritePitch" | "allNighter";
