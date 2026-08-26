@@ -60,16 +60,15 @@ describe("office rooms", () => {
     const seat = plan.seats[4];
     const agent = agentAt(0, 0, seat);
 
+    // Run until it settles: arriving snaps the agent exactly onto the tile and
+    // starts a dwell, so that is the real "got there" signal.
     let frame = 0;
-    while (frame < 4000 && (Math.abs(agent.x - seat.x) > .01 || Math.abs(agent.y - seat.y) > .01)) {
+    while (frame < 8000 && agent.dwell === 0) {
       stepAgent(agent, plan, blocked, frame);
       frame += 1;
     }
     expect(agent.x).toBeCloseTo(seat.x, 5);
     expect(agent.y).toBeCloseTo(seat.y, 5);
-
-    // Once settled it dwells, faces the camera, and stops reporting as walking.
-    stepAgent(agent, plan, blocked, frame);
     expect(agent.dwell).toBeGreaterThan(0);
     expect(agent.facing).toBe("down");
     expect(isWalking(agent)).toBe(false);
@@ -81,7 +80,7 @@ describe("office rooms", () => {
     const agent = agentAt(plan.seats[0].x, plan.seats[0].y, plan.seats[0]);
     agent.motion = "coffee";
 
-    for (let frame = 0; frame < 4000; frame += 1) stepAgent(agent, plan, blocked, frame);
+    for (let frame = 0; frame < 8000; frame += 1) stepAgent(agent, plan, blocked, frame);
     const target = plan.kitchen.some((k) => Math.abs(agent.x - k.x) < .01 && Math.abs(agent.y - k.y) < .01);
     expect(target).toBe(true);
   });

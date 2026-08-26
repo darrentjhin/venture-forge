@@ -364,7 +364,8 @@ export interface CharacterSpec {
  * upward so it overlaps the row behind it.
  */
 export function drawCharacter(ctx: CanvasRenderingContext2D, x: number, y: number, c: CharacterSpec, frame: number) {
-  const step = c.walking ? Math.floor((frame + c.phase) / 7) % 4 : 0;
+  // Four-frame cycle at ~6fps, paced to the walk speed above.
+  const step = c.walking ? Math.floor((frame + c.phase) / 10) % 4 : 0;
   const bob = c.walking && (step === 1 || step === 3) ? -1 : 0;
   const droop = c.slumped ? 2 : 0;
   const skin = SKINS[c.skin % SKINS.length];

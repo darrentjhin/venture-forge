@@ -22,7 +22,9 @@ export interface Agent {
   glasses: boolean; hairStyle: number;
 }
 
-const SPEED = 0.05; // tiles per frame
+// ~1.1 tiles a second at 60fps. Anything faster reads as skating
+// rather than walking at this sprite scale.
+const SPEED = 0.018;
 
 const key = (x: number, y: number) => `${x},${y}`;
 
