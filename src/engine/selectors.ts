@@ -19,13 +19,8 @@ export function selectRoomStage(state: GameState): RoomStage {
   const recent = state.headcountHistory.slice(-4);
   const high = recent.length ? Math.max(...recent) : state.people.length + 1;
   if (high >= 4 && state.people.length + 1 <= high * .7) return "downsized";
-  const count = state.people.length + 1;
-  if (state.week === 1) return "apartment";
-  if (count <= 2) return "kitchen";
-  if (count <= 5) return "coworking";
-  if (count <= 12) return "office";
-  if (count <= 25) return "floor";
-  return "hq";
+  if (state.week === state.companyStartedWeek) return "apartment";
+  return state.workspace;
 }
 export function selectMoralePhrase(person: Person): string {
   if (person.morale >= 78 && person.drift < 40) return "in a good rhythm";

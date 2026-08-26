@@ -2,6 +2,11 @@
 
 ## Simulation
 
+- Week 104 is now a year-one benchmark, not a stop. The career calendar derives `year` and `weekOfYear` from the same monotonically increasing week so old deterministic seeds remain reproducible.
+- A company closes only after two consecutive negative weeks. Closure archives its full milestone history and starts the next company from a small room; founder reputation, cash reserve, network, and relationships survive.
+- Emergency loans provide $20,000 and charge 18% of the outstanding balance every week. The deliberately punitive rate makes them a bridge to immediate growth, not free runway.
+- Selling the office creates a workspace cap rather than cutting headcount. This keeps the visible setback in the room until a later office move system replaces the temporary cap.
+
 - The cofounder is part of the company model in week 1, while the opening shot remains the apartment desk for that first week. The kitchen-table scene appears on week 2. This preserves both the specified cofounder sensitivity and the intended opening image.
 - Event Focus costs may create next-week Focus debt when a consequence arrives after the player has already spent the week. This prevents an impossible-to-resolve event from soft-locking the run while keeping every choice costly.
 - “Growing” at week 104 compares current MRR with MRR thirteen weeks earlier. A one-week comparison made the ending depend on invoice timing rather than company direction.

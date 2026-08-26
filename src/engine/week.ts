@@ -4,8 +4,10 @@ import type { SegmentId } from "../data/segments";
 import { applyQueuedActions } from "./actions";
 import { alignmentFor, evidenceScoreFor } from "./beliefs";
 import { churnRate, conversionRate, overclaimDelta, valuation, weeklyBurn } from "./economy";
-import { buildPostMortem, evaluateEnding } from "./endings";
+import { closeQuarter } from "./calendar";
+import { EMERGENCY_LOAN_WEEKLY_RATE, processCrisis } from "./crisis";
 import { evaluateEvents } from "./events";
+import { fireNextMilestone } from "./milestones";
 import { computeFocus, updatePeople } from "./people";
 import type { Customer, GameState, Workspace } from "./types";
 
@@ -27,17 +29,15 @@ function addCustomers(state: GameState, count: number, alignment: number): void 
   state.closedDeals += count;
 }
 
-function workspaceFor(count: number): Workspace {
-  if (count <= 1) return "apartment";
-  if (count <= 2) return "kitchen";
-  if (count <= 5) return "coworking";
-  if (count <= 12) return "office";
-  if (count <= 25) return "floor";
-  return "hq";
+function workspaceFor(count: number, cap: Workspace | null): Workspace {
+  const desired: Workspace = count <= 1 ? "apartment" : count <= 2 ? "kitchen" : count <= 5 ? "coworking" : count <= 12 ? "office" : count <= 25 ? "floor" : "hq";
+  if (!cap) return desired;
+  const tiers: Workspace[] = ["apartment", "kitchen", "coworking", "office", "floor", "hq"];
+  return tiers[Math.min(tiers.indexOf(desired), tiers.indexOf(cap))];
 }
 
 export function advanceWeek(input: GameState): GameState {
-  if (input.ending || input.pendingEvents.length > 0) return input;
+  if (input.crisis.choiceRequired || input.pendingEvents.length > 0) return input;
   const applied = applyQueuedActions(input);
   const state = applied.state;
   const notes = [...applied.notes];
@@ -72,7 +72,8 @@ export function advanceWeek(input: GameState): GameState {
 
   const burn = weeklyBurn(state);
   const financingDrag = state.outsideCapital > 0 && state.mrr > 0 ? Math.min(state.mrr / 13, weeklyRevenue * .16) : 0;
-  const cashDelta = weeklyRevenue - burn - financingDrag;
+  const emergencyInterest = state.emergencyLoanBalance * EMERGENCY_LOAN_WEEKLY_RATE;
+  const cashDelta = weeklyRevenue - burn - financingDrag - emergencyInterest;
   state.cash += cashDelta;
 
   state.evidenceScore = evidenceScoreFor(state);
@@ -96,16 +97,30 @@ export function advanceWeek(input: GameState): GameState {
 
   const count = state.people.length + 1;
   state.headcountHistory.push(count);
-  state.workspace = workspaceFor(count);
+  state.workspace = workspaceFor(count, state.workspaceCap);
   const events = evaluateEvents(state);
   state.pendingEvents.push(...events);
   state.firedEvents.push(...events.map((event) => event.id));
   if (events.length) notes.push(`${events.length} consequence${events.length === 1 ? "" : "s"} arrived from earlier decisions.`);
 
-  state.weeklyReports.push({ week: state.week, cashDelta, revenue: weeklyRevenue, burn: burn + financingDrag, newCustomers, churned: churnCount, notes });
+  if (emergencyInterest > 0) notes.push(`Emergency loan interest cost $${Math.round(emergencyInterest).toLocaleString()}.`);
+  state.weeklyReports.push({ week: state.week, cashDelta, revenue: weeklyRevenue, burn: burn + financingDrag + emergencyInterest, newCustomers, churned: churnCount, notes });
   state.history.push({ week: state.week, cash: state.cash, mrr: state.mrr });
-  const ending = evaluateEnding(state);
-  if (ending) { state.ending = ending; state.postMortem = buildPostMortem(state, ending); return state; }
+  const quarter = closeQuarter(state);
+  if (quarter) {
+    state.quarterReports.push(quarter);
+    state.officeBeat += 1;
+    const entry = { id: `quarter-${quarter.year}-${quarter.quarter}`, week: state.week, kind: "quarter" as const, title: quarter.title, body: quarter.body, icon: quarter.officeBeat === "plant" ? "🪴" : quarter.officeBeat === "paint" ? "🖌️" : "📦" };
+    state.companyHistory.push(entry);
+    state.cards.push({ ...entry, kind: "quarter" });
+  }
+  const milestone = fireNextMilestone(state);
+  if (milestone) {
+    state.companyHistory.push(milestone);
+    state.cards.push({ ...milestone, kind: "milestone" });
+  }
+  const crisisResult = processCrisis(state);
+  if (crisisResult !== state) return crisisResult;
   state.week += 1;
   state.day = 1;
   return state;

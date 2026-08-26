@@ -7,9 +7,10 @@ import { useGame } from "./store/useGame";
 import { Help } from "./ui/Help";
 import { Hud } from "./ui/Hud";
 import { Panel } from "./ui/Panel";
-import { PostMortem } from "./ui/PostMortem";
 import { Title } from "./ui/Title";
 import { WeekReport } from "./ui/WeekReport";
+import { CrisisCard } from "./ui/CrisisCard";
+import { GameCard } from "./ui/GameCard";
 
 export function App() {
   const screen = useGame((store) => store.screen);
@@ -35,13 +36,13 @@ export function App() {
   }, [screen, openPanel, toggleHelp]);
 
   if (screen === "title" || !game) return <Title/>;
-  if (screen === "postmortem" && game.postMortem) return <PostMortem game={game} postMortem={game.postMortem}/>;
-
   return <div className="game-shell">
     <Hud game={game}/>
     <Room state={game} onOpen={openPanel}/>
     <AnimatePresence>{panel && <Panel key={panel} id={panel} game={game}/>}</AnimatePresence>
     <AnimatePresence>{reportOpen && <WeekReport key="report" game={game}/>}</AnimatePresence>
+    <AnimatePresence>{!reportOpen && game.crisis.choiceRequired && <CrisisCard key="crisis" game={game}/>}</AnimatePresence>
+    <AnimatePresence>{!reportOpen && !game.crisis.choiceRequired && game.cards[0] && <GameCard key={game.cards[0].id} card={game.cards[0]}/>}</AnimatePresence>
     <AnimatePresence>{helpOpen && <Help key="help"/>}</AnimatePresence>
   </div>;
 }

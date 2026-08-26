@@ -11,6 +11,8 @@ export type RoomStage = Workspace | "downsized";
 export type PersonMotion = "typing" | "thinking" | "talking" | "walking" | "meeting" | "coffee" | "struggling" | "leaving";
 export type PanelId = "metrics" | "notebook" | "inbox" | "roadmap" | "team" | "capital";
 export type EndingId = "alive" | "acquisition" | "series-a" | "built-to-last" | "cash" | "team" | "reputation" | "searching";
+export type CrisisChoiceId = "layoff" | "loan" | "sellOffice";
+export type CompanyHistoryKind = "milestone" | "quarter" | "crisis" | "restart";
 
 export interface MarketTruth { buyer: SegmentId; secondaryBuyer: SegmentId; willingnessToPay: number; wedgeFeature: FeatureId; supportFeature: FeatureId; decoyFeatures: FeatureId[]; churnDriver: ChurnDriverId; channel: ChannelId; demandInflectionWeek: number; competitorAggression: number; }
 export interface Hypothesis<T> { value: T; confidence: number; committedWeek: number; }
@@ -27,14 +29,22 @@ export interface PendingAction { id: string; actionId: ActionId; target?: string
 export interface HistoryPoint { week: number; cash: number; mrr: number; }
 export interface WeekReport { week: number; cashDelta: number; revenue: number; burn: number; newCustomers: number; churned: number; notes: string[]; }
 export interface PostMortem { ending: EndingId; title: string; grade: string; feedback: string; couldKnowWeek: number | null; couldKnowText: string; counterfactual: string; shareText: string; }
+export interface CompanyHistoryEntry { id: string; week: number; kind: CompanyHistoryKind; title: string; body: string; icon: string; }
+export interface ClosedCompany { companyNumber: number; startedWeek: number; closedWeek: number; finalCash: number; finalMrr: number; customers: number; peakHeadcount: number; history: CompanyHistoryEntry[]; }
+export interface FounderLegacy { cash: number; reputation: number; network: number; relationships: Record<string, number>; history: ClosedCompany[]; }
+export interface CrisisState { active: boolean; choiceRequired: boolean; consecutiveNegativeWeeks: number; enteredWeek: number | null; crisesSurvived: number; }
+export interface GameCard { id: string; kind: "milestone" | "quarter" | "restart"; week: number; title: string; body: string; icon: string; }
+export interface QuarterReport { year: number; quarter: number; week: number; grade: "A" | "B" | "C" | "D"; title: string; body: string; officeBeat: "plant" | "paint" | "delivery"; }
 export interface GameState {
-  version: 3; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
+  version: 4; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
   truth: MarketTruth; beliefs: Beliefs; evidence: EvidenceCard[]; conviction: number; evidenceScore: number; overclaim: number; quietCorrectWeeks: number;
   pipeline: number; customers: Customer[]; churnPressure: number; churnedCustomers: number; closedDeals: number; mrr: number; previousMrr: number; price: number; reputation: number;
   shippedFeatures: FeatureId[]; selectedFeature: FeatureId; techDebt: number; onboardingQuality: number; people: Person[]; formerPeople: string[]; workspace: Workspace; headcountHistory: number[];
   queuedActions: PendingAction[]; decisionLog: Decision[]; firedEvents: string[]; pendingEvents: GameEvent[]; eventHistory: GameEvent[];
   pivotWeeksRemaining: number; allNighterCooldown: number; outsideCapital: number; valuation: number; raisedSeriesA: boolean; acceptedAcquisition: boolean;
   totalCustomersWon: number; weeklyReports: WeekReport[]; history: HistoryPoint[]; ending: EndingId | null; postMortem: PostMortem | null;
+  companyNumber: number; companyStartedWeek: number; founder: FounderLegacy; companyHistory: CompanyHistoryEntry[]; firedMilestones: string[]; cards: GameCard[];
+  crisis: CrisisState; emergencyLoanBalance: number; workspaceCap: Workspace | null; quarterReports: QuarterReport[]; officeBeat: number;
 }
 
 export type ActionId = "interview" | "interviewSprint" | "landingPage" | "churnAutopsy" | "winLoss" | "teardown" | "ship" | "harden" | "onboarding" | "payDebt" | "spike" | "coldOutreach" | "salesCall" | "communityLaunch" | "content" | "paidAds" | "enterpriseDeal" | "postRole" | "interviewCandidate" | "offer" | "oneOnOne" | "raise" | "letGo" | "angel" | "seedFund" | "bridge" | "revenueFinance" | "cutBurn" | "weekend" | "pivot" | "rewritePitch" | "allNighter";

@@ -29,7 +29,7 @@ export function evidenceScoreFor(state: Pick<GameState, "beliefs" | "truth" | "e
 }
 
 export function commitBelief(state: GameState, key: BeliefKey, value: string | number): GameState {
-  if (state.focus < 1 || state.ending) return state;
+  if (state.focus < 1 || state.crisis.choiceRequired) return state;
   const next = cloneGameState(state);
   if (key === "buyer") next.beliefs.buyer = { value: value as Beliefs["buyer"]["value"], confidence: confidenceFor(next.evidence, key, String(value)), committedWeek: next.week };
   if (key === "price") next.beliefs.price = { value: Number(value), confidence: confidenceFor(next.evidence, key, String(value)), committedWeek: next.week };

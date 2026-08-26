@@ -1,5 +1,6 @@
 import { playSfx } from "../audio/sfx";
 import { BALANCE } from "../data/balance";
+import { calendarLabel } from "../engine/calendar";
 import { selectBurn, selectRunway, selectRunwayDisplay, selectRunwayMood, selectWeeklyRevenue } from "../engine/selectors";
 import type { GameState } from "../engine/types";
 import { useGame } from "../store/useGame";
@@ -33,7 +34,7 @@ export function Hud({ game }: { game: GameState }) {
   const burn = selectBurn(game);
   const net = selectWeeklyRevenue(game) - burn;
   const mrrDelta = game.mrr - game.previousMrr;
-  const blocked = game.pendingEvents.length > 0;
+  const blocked = game.pendingEvents.length > 0 || game.crisis.choiceRequired;
 
   const cashClass = game.cash < 5000 ? "is-bad" : game.cash < 15000 ? "is-warn" : "";
   const runwayClass = mood >= 4 ? "is-bad" : mood >= 3 ? "is-warn" : mood === 0 ? "is-good" : "";
@@ -45,7 +46,7 @@ export function Hud({ game }: { game: GameState }) {
     </div>
 
     <div className="hud-stats">
-      <div className="stat"><small>Week</small><strong>{game.week}<span style={{ opacity: .4, fontSize: 11 }}>/{BALANCE.totalWeeks}</span></strong></div>
+      <div className="stat"><small>Calendar</small><strong>{calendarLabel(game.week)}</strong></div>
       <div className={`stat ${cashClass}`}><small>Cash</small><strong><NumberValue value={Math.round(game.cash)} prefix="$"/></strong></div>
       <div className="stat">
         <small>MRR</small>
@@ -66,15 +67,16 @@ export function Hud({ game }: { game: GameState }) {
       <button className="icon-btn" onClick={abandon} aria-label="Back to title" title="Back to title">⏻</button>
       <button
         className="end-week"
-        disabled={Boolean(game.ending)}
-        title={blocked ? "Resolve the events in your inbox first" : `Advance to week ${game.week + 1}`}
+        disabled={game.crisis.choiceRequired}
+        title={game.crisis.choiceRequired ? "Answer your cofounder first" : blocked ? "Resolve the events in your inbox first" : `Advance to ${calendarLabel(game.week + 1)}`}
         onClick={() => {
+          if (game.crisis.choiceRequired) return;
           if (blocked) { playSfx("alert", muted); openPanel("inbox"); return; }
           playSfx("week_tick", muted);
           endWeek();
         }}
       >
-        {blocked ? "Resolve inbox" : "End week"} <b>{blocked ? `${game.pendingEvents.length}` : `${game.focus} left`}</b>
+        {game.crisis.choiceRequired ? "Cash crisis" : blocked ? "Resolve inbox" : "End week"} <b>{game.crisis.choiceRequired ? "!" : blocked ? `${game.pendingEvents.length}` : `${game.focus} left`}</b>
       </button>
     </div>
   </header>;

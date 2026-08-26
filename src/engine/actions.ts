@@ -12,7 +12,7 @@ export function getAction(id: ActionId) { return ACTIONS.find((action) => action
 
 export function queueAction(state: GameState, actionId: ActionId, target?: string): GameState {
   const definition = getAction(actionId);
-  if (!definition || state.ending || !definition.availability(state) || state.focus < definition.focusCost || state.cash < definition.cashCost) return state;
+  if (!definition || state.crisis.choiceRequired || !definition.availability(state) || state.focus < definition.focusCost || state.cash < definition.cashCost) return state;
   const next = { ...state, queuedActions: [...state.queuedActions], decisionLog: [...state.decisionLog] };
   next.focus -= definition.focusCost;
   next.day = Math.min(5, next.day + 1);

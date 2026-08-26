@@ -18,8 +18,8 @@ export function Help() {
         <h3>The hidden truth</h3>
         <p>
           Every seed generates a market with one correct answer for each of five dimensions: <strong>buyer</strong>,
-          <strong> wedge</strong>, <strong>price</strong>, <strong>channel</strong>, and <strong>churn cause</strong>.
-          You start holding the wrong hypothesis on most of them, at moderate confidence. Nothing tells you which.
+          <strong> must-have feature</strong>, <strong>price</strong>, <strong>where customers find you</strong>, and <strong>why customers leave</strong>.
+          You start with imperfect guesses. Customer conversations and actual behaviour reveal what is wrong.
         </p>
 
         <h3>Focus is the real currency</h3>
@@ -38,20 +38,20 @@ export function Help() {
         <h3>Beliefs drive the economy</h3>
         <p>
           Your committed beliefs — not the truth — determine who converts, at what rate, and how fast they churn.
-          Being right on buyer and wedge matters most. Being right quietly beats being confident loudly.
+          Knowing who pays and what they cannot live without matters most. Listen before you scale.
         </p>
 
-        <h3>Conviction versus evidence</h3>
+        <h3>Your story versus your proof</h3>
         <p>
-          Conviction opens funding doors. Evidence is what you can actually prove. When conviction runs ahead of evidence,
-          the gap accrues as <strong>overclaim</strong> — and the post-mortem grades you on it.
+          A strong story opens funding doors. Proof is what customers actually did. When the story runs too far ahead,
+          investors and employees eventually notice.
         </p>
 
         <h3>Ending the week</h3>
         <p>
           Revenue lands, customers churn, payroll and rent leave, and consequences of old decisions arrive in the inbox.
-          You cannot skip a pending decision. The run ends at week {BALANCE.totalWeeks}, at zero cash, when the team empties,
-          or when nobody believes you any more.
+          You cannot skip a pending decision. Week {BALANCE.totalWeeks} closes the old two-year benchmark, but the career keeps moving.
+          If cash stays negative for two weeks, this company closes and the next one begins in a small room.
         </p>
 
         <h3>Keys</h3>

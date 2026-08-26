@@ -17,7 +17,7 @@ export function ActionList({ game, group, only, exclude }: { game: GameState; gr
     {list.map((action) => {
       const unlocked = action.availability(game);
       const affordable = game.focus >= action.focusCost && game.cash >= action.cashCost;
-      const disabled = !unlocked || !affordable || Boolean(game.ending);
+      const disabled = !unlocked || !affordable || game.crisis.choiceRequired;
       const why = !unlocked ? "Not available yet" : game.focus < action.focusCost ? "Not enough Focus" : game.cash < action.cashCost ? "Not enough cash" : "";
       return <button key={action.id} className="action" disabled={disabled} title={why}
         onClick={() => { playSfx(action.cashCost > 0 ? "cash_out" : "click", muted); queueAction(action.id); }}>

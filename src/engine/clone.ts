@@ -13,5 +13,7 @@ export function cloneGameState(state: GameState): GameState {
     people: state.people.map((person) => ({ ...person, beliefs: { ...person.beliefs }, appearance: { ...person.appearance } })),
     formerPeople: [...state.formerPeople], headcountHistory: [...state.headcountHistory], queuedActions: state.queuedActions.map((action) => ({ ...action })), decisionLog: state.decisionLog.map((decision) => ({ ...decision })), firedEvents: [...state.firedEvents],
     pendingEvents: [...state.pendingEvents], eventHistory: [...state.eventHistory], weeklyReports: state.weeklyReports.map((report) => ({ ...report, notes: [...report.notes] })), history: state.history.map((point) => ({ ...point })), postMortem: state.postMortem ? { ...state.postMortem } : null,
+    founder: { ...state.founder, relationships: { ...state.founder.relationships }, history: state.founder.history.map((company) => ({ ...company, history: company.history.map((entry) => ({ ...entry })) })) },
+    companyHistory: state.companyHistory.map((entry) => ({ ...entry })), firedMilestones: [...state.firedMilestones], cards: state.cards.map((card) => ({ ...card })), crisis: { ...state.crisis }, quarterReports: state.quarterReports.map((report) => ({ ...report })),
   };
 }

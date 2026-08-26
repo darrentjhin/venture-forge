@@ -17,12 +17,12 @@ describe("content and acceptance contracts", () => {
   it("selects every room stage and the downsized override from actual headcount history", () => {
     const state = newRun(42);
     expect(selectRoomStage(state)).toBe("apartment");
-    state.week = 2; expect(selectRoomStage(state)).toBe("kitchen");
+    state.week = 2; state.workspace = "kitchen"; expect(selectRoomStage(state)).toBe("kitchen");
     const template = state.people[0];
-    state.people = Array.from({ length: 4 }, (_, index) => ({ ...template, id: `p-${index}`, isCofounder: index === 0 })); expect(selectRoomStage(state)).toBe("coworking");
-    state.people = Array.from({ length: 8 }, (_, index) => ({ ...template, id: `o-${index}`, isCofounder: index === 0 })); expect(selectRoomStage(state)).toBe("office");
-    state.people = Array.from({ length: 15 }, (_, index) => ({ ...template, id: `f-${index}`, isCofounder: index === 0 })); expect(selectRoomStage(state)).toBe("floor");
-    state.people = Array.from({ length: 26 }, (_, index) => ({ ...template, id: `h-${index}`, isCofounder: index === 0 })); expect(selectRoomStage(state)).toBe("hq");
+    state.people = Array.from({ length: 4 }, (_, index) => ({ ...template, id: `p-${index}`, isCofounder: index === 0 })); state.workspace = "coworking"; expect(selectRoomStage(state)).toBe("coworking");
+    state.people = Array.from({ length: 8 }, (_, index) => ({ ...template, id: `o-${index}`, isCofounder: index === 0 })); state.workspace = "office"; expect(selectRoomStage(state)).toBe("office");
+    state.people = Array.from({ length: 15 }, (_, index) => ({ ...template, id: `f-${index}`, isCofounder: index === 0 })); state.workspace = "floor"; expect(selectRoomStage(state)).toBe("floor");
+    state.people = Array.from({ length: 26 }, (_, index) => ({ ...template, id: `h-${index}`, isCofounder: index === 0 })); state.workspace = "hq"; expect(selectRoomStage(state)).toBe("hq");
     state.headcountHistory = [28, 27, 22, 18]; state.people = state.people.slice(0, 16); expect(selectRoomStage(state)).toBe("downsized");
   });
 

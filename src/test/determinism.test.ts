@@ -20,7 +20,6 @@ function scripted(seed: number): GameState {
     }
     const buyerCard = [...state.evidence].reverse().find((card) => card.dimension === "buyer");
     if (buyerCard && state.focus > 0) state = commitBelief(state, "buyer", buyerCard.suggests);
-    if (state.ending) break;
   }
   return state;
 }

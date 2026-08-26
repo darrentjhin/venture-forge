@@ -7,6 +7,7 @@ import { newRun } from "../engine/init";
 import { randomInt } from "../engine/rng";
 import type { ActionDef, BeliefKey, GameState } from "../engine/types";
 import { advanceWeek } from "../engine/week";
+import { evaluateEnding } from "../engine/endings";
 
 type Policy = "random" | "greedy" | "research";
 const WINS = new Set(["alive", "acquisition", "series-a", "built-to-last"]);
@@ -42,7 +43,7 @@ function pickAction(state: GameState, policy: Policy, roll: number): ActionDef |
 
 function play(seed: number, policy: Policy): GameState {
   let state = newRun(seed); let policyRng = seed ^ 0xa5a5a5a5;
-  while (!state.ending && state.week <= 104) {
+  while (state.companyNumber === 1 && !state.crisis.choiceRequired && state.week <= 104) {
     state = resolveAll(state);
     if (policy === "research" && state.evidence.length) {
       for (const key of ["price", "buyer", "wedge", "churnCause", "channel"] as BeliefKey[]) {
@@ -75,7 +76,7 @@ function assertFiniteState(state: GameState) {
   };
   visit(state);
   if (state.customers.length < 0) throw new Error("customer count cannot be negative");
-  if (state.week > 104) throw new Error("run exceeded 104 weeks");
+  if (state.week > 105) throw new Error("benchmark exceeded its year-one horizon");
 }
 
 describe("2,000-run balance simulation", () => {
@@ -85,7 +86,8 @@ describe("2,000-run balance simulation", () => {
       const policy: Policy = index % 3 === 0 ? "random" : index % 3 === 1 ? "greedy" : "research";
       const result = play(1000 + index * 17, policy);
       counts[policy].runs += 1;
-      if (result.ending && WINS.has(result.ending)) counts[policy].wins += 1;
+      const benchmarkEnding = result.companyNumber > 1 || result.crisis.choiceRequired ? "cash" : evaluateEnding({ ...result, week: 104 });
+      if (benchmarkEnding && WINS.has(benchmarkEnding)) counts[policy].wins += 1;
     }
     const totalWins = counts.random.wins + counts.greedy.wins + counts.research.wins;
     const overall = totalWins / 2000;

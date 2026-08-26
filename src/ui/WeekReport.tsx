@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { playSfx } from "../audio/sfx";
 import { selectRunwayDisplay } from "../engine/selectors";
+import { calendarLabel } from "../engine/calendar";
 import type { GameState } from "../engine/types";
 import { useGame } from "../store/useGame";
 
@@ -50,7 +51,7 @@ export function WeekReport({ game }: { game: GameState }) {
           closeReport();
           if (game.pendingEvents.length > 0) openPanel("inbox");
         }}>
-          {game.pendingEvents.length > 0 ? "Open the inbox" : `Start week ${game.week}`} <span aria-hidden="true">→</span>
+          {game.pendingEvents.length > 0 ? "Open the inbox" : game.crisis.choiceRequired ? "Answer your cofounder" : `Start ${calendarLabel(game.week)}`} <span aria-hidden="true">→</span>
         </button>
       </div>
     </motion.div>

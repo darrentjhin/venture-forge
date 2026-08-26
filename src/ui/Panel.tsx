@@ -25,10 +25,10 @@ const PANEL_META: Record<PanelId, { title: string; blurb: string }> = {
 const PRICE_STOPS = [25, 49, 79, 99, 149, 199, 249, 349, 499, 699, 900];
 const DIMENSIONS: { key: BeliefKey; label: string; question: string }[] = [
   { key: "buyer", label: "Buyer", question: "Who actually has the budget and the pain?" },
-  { key: "wedge", label: "Wedge", question: "Which single capability wins the deal?" },
+  { key: "wedge", label: "Must-have feature", question: "Which single capability wins the deal?" },
   { key: "price", label: "Price", question: "What will they approve without a fight?" },
-  { key: "channel", label: "Channel", question: "Where do they actually come from?" },
-  { key: "churnCause", label: "Churn cause", question: "Why do the ones who leave, leave?" },
+  { key: "channel", label: "Where they find you", question: "Where do they actually come from?" },
+  { key: "churnCause", label: "Why they leave", question: "Why do the ones who leave, leave?" },
 ];
 
 function optionsFor(key: BeliefKey): readonly string[] {
@@ -99,7 +99,7 @@ function MetricsPanel({ game }: { game: GameState }) {
       </div>
       <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
         Changing the price is free and immediate. It only affects <em>new</em> customers — the {game.customers.length} you already have
-        keep the price they signed at. Committing to a price <em>hypothesis</em> in the notebook is what costs Focus.
+        keep the price they signed at. Changing your working answer in the notebook is what costs Focus.
       </p>
     </div>
 
@@ -138,7 +138,7 @@ function NotebookPanel({ game }: { game: GameState }) {
 
   return <>
     <div className="section">
-      <span className="eyebrow">Working hypotheses · committing costs 1 Focus</span>
+      <span className="eyebrow">Your current market picture · changing an answer costs 1 Focus</span>
       {DIMENSIONS.map(({ key, label, question }) => {
         const belief = game.beliefs[key];
         const current = String(belief.value);
@@ -155,8 +155,8 @@ function NotebookPanel({ game }: { game: GameState }) {
               const active = option === current;
               return <button key={option}
                 className={`chip ${active ? "active" : ""} ${weight > 0 ? "evidenced" : ""}`}
-                disabled={active || game.focus < 1 || Boolean(game.ending)}
-                title={active ? "Current hypothesis" : game.focus < 1 ? "Not enough Focus" : `Commit to ${labelFor(key, option)}`}
+                disabled={active || game.focus < 1 || game.crisis.choiceRequired}
+                title={active ? "Current answer" : game.focus < 1 ? "Not enough Focus" : `Choose ${labelFor(key, option)}`}
                 onClick={() => { playSfx("commit", muted); commitBelief(key, key === "price" ? Number(option) : option); }}>
                 {labelFor(key, option)}{weight > 0 && <b>{weight}</b>}
               </button>;
@@ -275,7 +275,7 @@ function RoadmapPanel({ game }: { game: GameState }) {
             <span className="feature-check" aria-hidden="true">{shipped ? "✓" : ""}</span>
             <span>
               <strong>{FEATURE_LABELS[feature]}</strong>
-              {game.beliefs.wedge.value === feature && <span style={{ color: "var(--amber-deep)" }}>your wedge hypothesis</span>}
+              {game.beliefs.wedge.value === feature && <span style={{ color: "var(--amber-deep)" }}>your current must-have</span>}
             </span>
             <span>{wanted > 0 ? `${wanted} want${wanted === 1 ? "s" : ""} it` : shipped ? "shipped" : selected ? "next" : ""}</span>
           </button>;
@@ -286,6 +286,21 @@ function RoadmapPanel({ game }: { game: GameState }) {
     <div className="section">
       <span className="eyebrow">Build</span>
       <ActionList game={game} group="roadmap"/>
+    </div>
+
+    <div className="section">
+      <span className="eyebrow">Company history · {game.companyHistory.length}</span>
+      {game.companyHistory.length === 0 ? <div className="empty"><strong>The wall is blank.</strong><p>Firsts, quarter closes, and hard weeks will stay here permanently.</p></div> : <div className="evidence">
+        {[...game.companyHistory].reverse().map((entry) => <div className="ev-card" key={`${entry.id}-${entry.week}`}>
+          <div className="ev-head"><strong>{entry.icon} {entry.title}</strong><span>week {entry.week}</span></div>
+          <blockquote>{entry.body}</blockquote>
+        </div>)}
+      </div>}
+      {game.founder.history.map((company) => <details key={company.companyNumber} className="company-archive">
+        <summary>Company {company.companyNumber} · weeks {company.startedWeek}–{company.closedWeek}</summary>
+        <p>${Math.round(company.finalMrr).toLocaleString()} monthly · {company.customers} customers · peak team {company.peakHeadcount}</p>
+        {company.history.map((entry) => <small key={`${company.companyNumber}-${entry.id}`}>{entry.icon} W{entry.week} · {entry.title}</small>)}
+      </details>)}
     </div>
   </>;
 }
@@ -355,22 +370,22 @@ function CapitalPanel({ game }: { game: GameState }) {
       <div className="metric-grid">
         <div className="metric"><small>Valuation</small><strong>${(game.valuation / 1_000_000).toFixed(2)}M</strong><em>estimate, not an offer</em></div>
         <div className="metric"><small>Outside capital</small><strong>${game.outsideCapital.toLocaleString()}</strong><em>{game.outsideCapital > 0 ? "revenue carries a financing drag" : "fully bootstrapped"}</em></div>
-        <div className="metric"><small>Conviction</small><strong>{Math.round(game.conviction)}</strong><em>how hard you are selling it</em></div>
+        <div className="metric"><small>Story strength</small><strong>{Math.round(game.conviction)}</strong><em>how hard you are selling it</em></div>
         <div className="metric"><small>Evidence</small><strong>{Math.round(game.evidenceScore)}</strong><em>what you can actually prove</em></div>
       </div>
     </div>
 
     <div className={`section`}>
       <span className="eyebrow">The gap</span>
-      <Gauge label="Conviction" value={game.conviction} tone="var(--amber)"/>
+      <Gauge label="Story" value={game.conviction} tone="var(--amber)"/>
       <Gauge label="Evidence" value={game.evidenceScore} tone="var(--teal)"/>
       <div className={`metric ${overclaimLevel}`} style={{ marginTop: 10 }}>
-        <small>Overclaim</small><strong>{Math.round(game.overclaim)}</strong>
-        <em>{game.overclaim > 45 ? "You are selling a company that does not exist yet." : game.overclaim > 25 ? "The story is running ahead of the proof." : gap > 15 ? "Slightly ahead of the evidence." : "Story and proof are roughly aligned."}</em>
+        <small>Story risk</small><strong>{Math.round(game.overclaim)}</strong>
+        <em>{game.overclaim > 45 ? "You are selling a company that does not exist yet." : game.overclaim > 25 ? "The story is running ahead of the proof." : gap > 15 ? "Slightly ahead of the evidence." : "Story and proof are roughly in step."}</em>
       </div>
       <p style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 10, lineHeight: 1.55 }}>
-        Conviction opens doors — an angel needs 48, a seed fund needs 62. But conviction that outruns evidence accumulates
-        as overclaim, and overclaim is what the post-mortem grades you on.
+        A strong story opens doors — an angel needs 48, a seed fund needs 62. But a story that outruns proof creates risk,
+        and investors remember promises the product cannot keep.
       </p>
     </div>
 

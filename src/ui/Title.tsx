@@ -30,16 +30,16 @@ export function Title() {
         <span className="eyebrow">A deterministic founder simulation</span>
         <h1>Build something<br/><em>that outlives</em><br/>the hype.</h1>
         <p>
-          You start with ${BALANCE.startingCash.toLocaleString()}, a cofounder, and five beliefs about your market.
-          Exactly one set of those beliefs is true. You have {BALANCE.totalWeeks} weeks and {BALANCE.baseFocus} units
-          of attention a week to find out which — while the money runs down.
+          You start with ${BALANCE.startingCash.toLocaleString()}, a cofounder, and an uncertain market.
+          Spend {BALANCE.baseFocus} units of attention each week to learn what people will pay for. If a company fails,
+          you return to the desk with the relationships and scars—and build the next one.
         </p>
 
         <div className="title-facts">
-          <div className="title-fact"><strong>{BALANCE.totalWeeks}</strong><span>weeks</span></div>
+          <div className="title-fact"><strong>∞</strong><span>career</span></div>
           <div className="title-fact"><strong>${(BALANCE.startingCash / 1000).toFixed(0)}k</strong><span>starting cash</span></div>
-          <div className="title-fact"><strong>5</strong><span>hidden truths</span></div>
-          <div className="title-fact"><strong>8</strong><span>endings</span></div>
+          <div className="title-fact"><strong>52</strong><span>weeks per year</span></div>
+          <div className="title-fact"><strong>0</strong><span>game-over screens</span></div>
         </div>
 
         <div className="seed-row">
@@ -59,7 +59,7 @@ export function Title() {
             {parsed ? `Start seed ${parsed}` : "Start a new career"} <span aria-hidden="true">→</span>
           </button>
           {saved && <button className="btn btn-ghost" onClick={() => { playSfx("click", muted); continueRun(); }}>
-            Continue week {saved.week}
+            Continue company {saved.companyNumber} · Y{Math.floor((saved.week - 1) / 52) + 1} W{((saved.week - 1) % 52) + 1}
           </button>}
         </div>
         <p className="seed-hint">Same seed, same market. Share one to compare runs against the identical hidden truth.</p>
@@ -72,7 +72,7 @@ export function Title() {
           <ul>
             <li><b>01</b><span><strong>Gather.</strong> Interviews and tests produce evidence cards. Some are misleading.</span></li>
             <li><b>02</b><span><strong>Commit.</strong> Turn evidence into a belief. Beliefs drive conversion and churn.</span></li>
-            <li><b>03</b><span><strong>Build &amp; sell.</strong> Ship the wedge, price it, fill the pipeline.</span></li>
+            <li><b>03</b><span><strong>Build &amp; sell.</strong> Ship the must-have feature, price it, and find customers.</span></li>
             <li><b>04</b><span><strong>End the week.</strong> Revenue lands, customers churn, consequences arrive.</span></li>
           </ul>
         </div>

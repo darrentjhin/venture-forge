@@ -111,6 +111,16 @@ export function OfficeView({ state, onOpen, onHoverPerson }: {
       },
     }));
 
+    const beatKinds = ["plant", "lamp", "bin"] as const;
+    for (let index = 0; index < Math.min(4, state.officeBeat); index += 1) {
+      const tx = Math.max(0, plan.cols - 2 - index * 2);
+      const ty = plan.rows - 1;
+      items.push({ depth: ty, order: 250 + index, paint: () => {
+        const { x, y } = toScreen(tx, ty, origin);
+        drawFurniture(ctx, beatKinds[index % beatKinds.length], x, y, state.officeBeat + index, p);
+      } });
+    }
+
     agentsRef.current.forEach((agent, index) => items.push({
       depth: agent.y, order: 400 + index,
       paint: () => {
@@ -136,7 +146,7 @@ export function OfficeView({ state, onOpen, onHoverPerson }: {
       px(ctx, 0, 0, view.width, view.height, "#0a1420");
       ctx.globalAlpha = 1;
     }
-  }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, metricPulse, unread]);
+  }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, state.officeBeat, metricPulse, unread]);
 
   // One synchronous frame, so a tab loaded in the background is never blank.
   useEffect(() => { render(0); }, [render]);
