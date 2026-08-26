@@ -1,4 +1,4 @@
-import { INK, INK_SOFT, HAIR, PANTS, SHIRTS, SKINS, type Palette } from "./palette";
+import { INK, INK_SOFT, HAIR, PANTS, SHIRTS, SKINS, type Daylight, type Palette } from "./palette";
 import { companyShortName } from "../../data/companyNames";
 import { TILE, WALL_H, type Point } from "./geometry";
 
@@ -95,9 +95,10 @@ export function glowPool(ctx: CanvasRenderingContext2D, cx: number, cy: number, 
  * than at fixed offsets, so windows and frames can never overlap each other or
  * the door in the first tile.
  */
-export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origin: Point, p: Palette, mood: number, week: number, reserved: { x: number; w: number }[] = []) {
+export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origin: Point, p: Palette, mood: number, week: number, light: Daylight, reserved: { x: number; w: number }[] = []) {
   const top = origin.y - WALL_H;
-  const night = mood >= 4;
+  // Running out of money keeps you at the desk after dark, whatever day it is.
+  const night = mood >= 4 || light.lamp > .5;
 
   const vent = (x: number) => {
     px(ctx, x, top + 10, 18, 12, p.wallDark);
@@ -105,13 +106,17 @@ export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origi
   };
 
   const windowPane = (x: number) => {
-    block(ctx, x, top + 12, 40, 30, night ? "#14203a" : "#8fd4e8");
+    // Sky gradient runs with the working day; the sun tracks across the week.
+    block(ctx, x, top + 12, 40, 30, light.skyTop);
+    px(ctx, x, top + 26, 40, 16, light.skyBottom);
     if (night) {
       px(ctx, x + 6, top + 18, 2, 2, "#e8f0ff"); px(ctx, x + 26, top + 22, 2, 2, "#e8f0ff");
       px(ctx, x + 15, top + 30, 2, 2, "#cfe0ff"); px(ctx, x + 32, top + 16, 1, 1, "#e8f0ff");
+      px(ctx, x + 3, top + 34, 34, 8, "#101a2c");
     } else {
-      px(ctx, x, top + 30, 40, 12, "#b8e6c0");
-      px(ctx, x + 26, top + 16, 8, 8, "#fff3b0");
+      px(ctx, x, top + 32, 40, 10, "#b8e6c0");
+      const sunX = x + 6 + Math.min(26, Math.max(0, Math.round(light.lamp * 60)));
+      px(ctx, sunX, top + 16, 8, 8, light.sun);
     }
     px(ctx, x + 19, top + 12, 2, 30, INK);
     px(ctx, x, top + 26, 40, 2, INK);
@@ -141,15 +146,18 @@ export function drawWallDecor(ctx: CanvasRenderingContext2D, cols: number, origi
     px(ctx, cx + Math.round(Math.sin(angle) * 5), cy - Math.round(Math.cos(angle) * 5), 2, 2, "#d6483c");
   };
 
+  // Ordered by how much each earns its place. The window carries the time of
+  // day, so it is placed first and a small room gets one even if nothing else
+  // fits; the vent is filler and goes last.
   const catalogue: { w: number; draw: (x: number) => void }[] = [
-    { w: 18, draw: vent },
     { w: 40, draw: windowPane },
     { w: 34, draw: framed("#2f5f7a", "#4e8f5e", 34, 26) },
     { w: 16, draw: clock },
-    { w: 22, draw: framed("#6b3f5e", "#d68a4e", 22, 18) },
     { w: 40, draw: windowPane },
+    { w: 22, draw: framed("#6b3f5e", "#d68a4e", 22, 18) },
     { w: 14, draw: wallPlant },
     { w: 24, draw: framed("#3a5f4a", "#c4a24e", 24, 20) },
+    { w: 18, draw: vent },
   ];
 
   // The door owns the first tile; wall-mounted fixtures own their own spans.

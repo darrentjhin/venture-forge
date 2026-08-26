@@ -1,6 +1,10 @@
 import { playSfx } from "../audio/sfx";
 import { BALANCE } from "../data/balance";
 import { calendarLabel } from "../engine/calendar";
+
+// The room lights the week Monday to Friday; naming the day makes that read
+// as the working week rather than an unexplained colour shift.
+const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 import { selectBurn, selectRunway, selectRunwayDisplay, selectRunwayMood, selectWeeklyRevenue } from "../engine/selectors";
 import type { GameState } from "../engine/types";
 import { useGame } from "../store/useGame";
@@ -46,7 +50,7 @@ export function Hud({ game }: { game: GameState }) {
     </div>
 
     <div className="hud-stats">
-      <div className="stat"><small>Calendar</small><strong>{calendarLabel(game.week)}</strong></div>
+      <div className="stat"><small>Calendar</small><strong>{calendarLabel(game.week)}<span style={{ opacity: .45, fontSize: 11 }}> {DAY_NAMES[Math.min(4, Math.max(0, game.day - 1))]}</span></strong></div>
       <div className={`stat ${cashClass}`}><small>Cash</small><strong><NumberValue value={Math.round(game.cash)} prefix="$"/></strong></div>
       <div className="stat">
         <small>MRR</small>

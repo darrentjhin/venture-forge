@@ -4,7 +4,7 @@ import { selectRoomStage, selectRunwayMood } from "../engine/selectors";
 import type { GameState, PanelId, Person, PersonMotion } from "../engine/types";
 import { findPath, hasArrived, isWalking, sendAgentTo, stepAgent, type Agent } from "./room/agents";
 import { integerScaleFor, TILE, WALL_H, tileFloor, toScreen, viewFor } from "./room/geometry";
-import { paletteFor } from "./room/palette";
+import { daylightFor, paletteFor } from "./room/palette";
 import { blockedTiles, planFor } from "./room/plans";
 import { drawCharacter, drawFurniture, drawObject, drawRoomShell, companyShortName, drawCompanySign, measureSign, pickSignGap, drawTag, drawVignette, drawWallDecor, px, type ObjectHit } from "./room/sprites";
 
@@ -75,12 +75,13 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
 
       const gap = pickSignGap(view.origin.x + 10, view.origin.x + plan.cols * TILE - 10, fixtures);
       const signTop = view.origin.y - WALL_H + 30;
-      const label = measureSign(baseContext, state.companyName) <= gap.w
-        ? state.companyName
-        : companyShortName(state.companyName);
+      // In a small room the full name would swallow the wall and leave no space
+      // for a window, so short rooms get the short name.
+      const roomy = plan.cols >= 14 && measureSign(baseContext, state.companyName) + 70 <= gap.w;
+      const label = roomy ? state.companyName : companyShortName(state.companyName);
       const signWidth = drawCompanySign(baseContext, gap.x + gap.w / 2, signTop, label, p);
       const reserved = [...fixtures, { x: gap.x + gap.w / 2 - signWidth / 2 - 8, w: signWidth + 16 }];
-      drawWallDecor(baseContext, plan.cols, view.origin, p, mood, state.week, reserved);
+      drawWallDecor(baseContext, plan.cols, view.origin, p, mood, state.week, daylightFor(state.day), reserved);
     }
     const grouped = new Map<number, HTMLCanvasElement>();
     for (const item of plan.furniture) {
@@ -93,7 +94,7 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
       drawFurniture(context, item.kind, x, y, item.tx * 3 + item.ty, p);
     }
     return { base, furniture: [...grouped.entries()].map(([depth, layer]) => ({ depth, layer })) };
-  }, [plan, view, mood, state.week, state.companyName]);
+  }, [plan, view, mood, state.week, state.day, state.companyName]);
 
   const founder = useMemo<Person>(() => ({
     id: `founder-${state.seed}`, name: "You", role: "Operations", archetype: "operator", salaryWeekly: 0,
@@ -131,7 +132,7 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
     else {
       px(ctx, 0, 0, view.width, view.height, "#0d1119");
       drawRoomShell(ctx, plan.cols, plan.rows, origin, p);
-      drawWallDecor(ctx, plan.cols, origin, p, mood, state.week);
+      drawWallDecor(ctx, plan.cols, origin, p, mood, state.week, daylightFor(state.day));
     }
 
     const hits: ObjectHit[] = [];
@@ -209,9 +210,15 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverrid
       px(ctx, 0, 0, view.width, view.height, "#0a1420");
       ctx.globalAlpha = 1;
     }
-    // Last: the room is a lit box in a dark building. Deepens as cash runs out.
-    drawVignette(ctx, view.width, view.height, .3 + p.dim * 1.4);
-  }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, state.officeBeat, state.founder.jittery, metricPulse, unread, staticScene]);
+    // Hour of the week over the whole room, then the vignette last.
+    const light = daylightFor(state.day);
+    if (light.tintAlpha > 0) {
+      ctx.globalAlpha = light.tintAlpha;
+      px(ctx, 0, 0, view.width, view.height, light.tint);
+      ctx.globalAlpha = 1;
+    }
+    drawVignette(ctx, view.width, view.height, .3 + p.dim * 1.4 + light.lamp * .25);
+  }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, state.officeBeat, state.day, state.founder.jittery, metricPulse, unread, staticScene]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
