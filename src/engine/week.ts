@@ -127,5 +127,8 @@ export function advanceWeek(input: GameState): GameState {
   if (crisisResult !== state) return crisisResult;
   state.week += 1;
   state.day = 1;
+  state.founder.coffeeDay = 1;
+  state.founder.coffeeToday = 0;
+  state.founder.jittery = false;
   return state;
 }

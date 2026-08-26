@@ -9,7 +9,7 @@ describe("save migration", () => {
     const legacy: Record<string, unknown> = { ...current, version: 3 };
     for (const key of ["companyNumber", "companyStartedWeek", "founder", "companyHistory", "firedMilestones", "cards", "crisis", "emergencyLoanBalance", "workspaceCap", "quarterReports", "officeBeat", "tasks", "completedTasks", "taskSerial", "taskMrr", "findings", "workloads", "unlockedApps"]) delete legacy[key];
     const migrated = migrateGameState(legacy);
-    expect(migrated?.version).toBe(5);
+    expect(migrated?.version).toBe(6);
     expect(migrated?.seed).toBe(95);
     expect(migrated?.companyNumber).toBe(1);
     expect(migrated?.tasks).toHaveLength(4);
@@ -21,7 +21,19 @@ describe("save migration", () => {
     const legacy: Record<string, unknown> = { ...current, version: 4 };
     for (const key of ["tasks", "completedTasks", "taskSerial", "taskMrr", "findings", "workloads", "unlockedApps"]) delete legacy[key];
     const migrated = migrateGameState(legacy);
-    expect(migrated?.version).toBe(5);
+    expect(migrated?.version).toBe(6);
     expect(migrated?.tasks.map((task) => task.title)).toContain("Interview five customers");
+  });
+
+  it("adds the founder day to a version 5 save", () => {
+    const current = newRun(97);
+    const founder = { ...current.founder } as Record<string, unknown>;
+    delete founder.coffeeDay;
+    delete founder.coffeeToday;
+    delete founder.jittery;
+    const migrated = migrateGameState({ ...current, version: 5, founder });
+    expect(migrated?.version).toBe(6);
+    expect(migrated?.founder.coffeeToday).toBe(0);
+    expect(migrated?.founder.jittery).toBe(false);
   });
 });

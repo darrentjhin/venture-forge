@@ -9,6 +9,7 @@ import { resolveCrisis as resolveEngineCrisis } from "../engine/crisis";
 import type { ActionId, BeliefKey, CrisisChoiceId, GameState, PanelId } from "../engine/types";
 import { migrateGameState } from "./migrate";
 import { assignTask as assignEngineTask, unassignTask as unassignEngineTask } from "../engine/tasks";
+import { drinkCoffee as drinkEngineCoffee } from "../engine/founder";
 
 interface GameStore {
   game: GameState | null;
@@ -33,6 +34,7 @@ interface GameStore {
   dismissCard: () => void;
   assignTask: (taskId: string, personId: string) => void;
   unassignTask: (taskId: string, personId: string) => void;
+  drinkCoffee: () => string | null;
   toggleHelp: () => void;
   toggleMuted: () => void;
 }
@@ -60,14 +62,24 @@ export const useGame = create<GameStore>()(persist((set) => ({
   dismissCard: () => set((store) => store.game ? { game: { ...store.game, cards: store.game.cards.slice(1) } } : {}),
   assignTask: (taskId, personId) => set((store) => store.game ? { game: assignEngineTask(store.game, taskId, personId) } : {}),
   unassignTask: (taskId, personId) => set((store) => store.game ? { game: unassignEngineTask(store.game, taskId, personId) } : {}),
+  drinkCoffee: () => {
+    let message: string | null = null;
+    set((store) => {
+      if (!store.game) return {};
+      const result = drinkEngineCoffee(store.game);
+      message = result.message;
+      return { game: result.state };
+    });
+    return message;
+  },
   toggleHelp: () => set((store) => ({ helpOpen: !store.helpOpen })),
   toggleMuted: () => set((store) => ({ muted: !store.muted })),
 }), {
   name: "venture-forge-v3",
-  version: 5,
+  version: 6,
   migrate: (persisted) => {
     const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean } : {};
     return { ...old, game: migrateGameState(old.game) };
   },
-  partialize: (store) => ({ game: store.game?.version === 5 ? store.game : null, muted: store.muted }),
+  partialize: (store) => ({ game: store.game?.version === 6 ? store.game : null, muted: store.muted }),
 }));

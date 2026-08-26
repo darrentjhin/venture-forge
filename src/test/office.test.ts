@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findPath, isWalking, stepAgent, type Agent } from "../scene/room/agents";
+import { findPath, hasArrived, isWalking, sendAgentTo, stepAgent, type Agent } from "../scene/room/agents";
 import { blockedTiles, planFor } from "../scene/room/plans";
 import { SEATS_REQUIRED } from "../scene/room/plans";
 
@@ -83,5 +83,28 @@ describe("office rooms", () => {
     for (let frame = 0; frame < 8000; frame += 1) stepAgent(agent, plan, blocked, frame);
     const target = plan.kitchen.some((k) => Math.abs(agent.x - k.x) < .01 && Math.abs(agent.y - k.y) < .01);
     expect(target).toBe(true);
+  });
+
+  it("lets the player send the founder to a clicked floor tile", () => {
+    const plan = planFor("office");
+    const blocked = blockedTiles(plan);
+    const founder = agentAt(plan.seats[0].x, plan.seats[0].y, plan.seats[0]);
+    founder.controlled = true;
+    const target = plan.wander.find((tile) => !blocked.has(`${tile.x},${tile.y}`));
+    expect(target).toBeDefined();
+    if (!target) return;
+    expect(sendAgentTo(founder, plan, blocked, target)).toBe(true);
+    for (let frame = 0; frame < 8000 && !hasArrived(founder); frame += 1) stepAgent(founder, plan, blocked, frame);
+    expect(founder.x).toBeCloseTo(target.x, 5);
+    expect(founder.y).toBeCloseTo(target.y, 5);
+    expect(hasArrived(founder)).toBe(true);
+  });
+
+  it("keeps a controlled founder still until the player clicks", () => {
+    const plan = planFor("office");
+    const founder = agentAt(3, 3, plan.seats[0]);
+    founder.controlled = true;
+    for (let frame = 0; frame < 300; frame += 1) stepAgent(founder, plan, blockedTiles(plan), frame);
+    expect({ x: founder.x, y: founder.y }).toEqual({ x: 3, y: 3 });
   });
 });

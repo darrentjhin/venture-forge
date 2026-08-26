@@ -20,6 +20,8 @@ export interface Agent {
   slumped: boolean;
   skin: number; hair: number; shirt: number; pants: number;
   glasses: boolean; hairStyle: number;
+  /** Player-controlled agents never choose an idle destination on their own. */
+  controlled?: boolean;
 }
 
 // ~1.1 tiles a second at 60fps. Anything faster reads as skating
@@ -82,13 +84,34 @@ export function isWalking(agent: Agent): boolean {
   return agent.path.length > 0 && agent.dwell === 0;
 }
 
+/** Sends an agent somewhere chosen by the player. */
+export function sendAgentTo(agent: Agent, plan: RoomPlan, blocked: Set<string>, target: Point): boolean {
+  const path = findPath(plan, blocked, agent, target);
+  const alreadyThere = Math.abs(agent.x - target.x) < .1 && Math.abs(agent.y - target.y) < .1;
+  if (!path.length && !alreadyThere) return false;
+  agent.target = { x: target.x, y: target.y };
+  agent.path = path;
+  agent.dwell = 0;
+  agent.motion = "walking";
+  return true;
+}
+
+export function hasArrived(agent: Agent): boolean {
+  const target = agent.target;
+  return target !== null && agent.path.length === 0 &&
+    Math.abs(agent.x - target.x) < .1 && Math.abs(agent.y - target.y) < .1;
+}
+
 /** Advances one agent by a frame. */
 export function stepAgent(agent: Agent, plan: RoomPlan, blocked: Set<string>, frame: number) {
   if (agent.dwell > 0) { agent.dwell -= 1; return; }
 
   // Pick a destination once and hold it. Re-deriving it every frame would flip
   // between equivalent tiles (the two kitchen spots) and never arrive.
-  if (!agent.target) agent.target = destinationFor(agent, plan, agent.phase + frame);
+  if (!agent.target) {
+    if (agent.controlled) return;
+    agent.target = destinationFor(agent, plan, agent.phase + frame);
+  }
   const want = agent.target;
 
   if (!agent.path.length) {

@@ -16,7 +16,9 @@ const PANELS: { id: PanelId; label: string }[] = [
 
 export function Room({ state, onOpen }: { state: GameState; onOpen: (panel: PanelId) => void }) {
   const [hovered, setHovered] = useState<PersonData | null>(null);
+  const [coffeeMessage, setCoffeeMessage] = useState<string | null>(null);
   const queueAction = useGame((store) => store.queueAction);
+  const drinkCoffee = useGame((store) => store.drinkCoffee);
   const stage = selectRoomStage(state);
   const mood = selectRunwayMood(state);
 
@@ -26,7 +28,13 @@ export function Room({ state, onOpen }: { state: GameState; onOpen: (panel: Pane
       <b>{state.people.length + 1} {state.people.length === 0 ? "person" : "people"} · {selectRunwayDisplay(state)} left</b>
     </div>
 
-    <OfficeView state={state} onOpen={onOpen} onHoverPerson={setHovered}/>
+    <OfficeView state={state} onOpen={onOpen} onHoverPerson={setHovered} onCoffee={() => {
+      const message = drinkCoffee();
+      setCoffeeMessage(message);
+      window.setTimeout(() => setCoffeeMessage(null), 2400);
+    }}/>
+
+    {coffeeMessage && <div className="toasts"><div className="toast"><b>Coffee</b> {coffeeMessage}</div></div>}
 
     {hovered && <aside className="person-card">
       <span>{hovered.role} · week {Math.max(1, state.week - hovered.hiredWeek + 1)}</span>

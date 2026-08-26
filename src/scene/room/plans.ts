@@ -12,6 +12,8 @@ export interface RoomPlan {
   /** Work positions in hiring order; index 0 is the founder. */
   seats: Point[];
   kitchen: Point[];
+  /** Machine tile and the floor tile where the founder uses it. */
+  coffeeMachine: Point;
   meeting: Point[];
   wander: Point[];
   objects: RoomObject[];
@@ -51,6 +53,7 @@ function ownRoom(): RoomPlan {
     ],
     seats: [{ x: 4, y: 1 }, { x: 6, y: 1 }],
     kitchen: [{ x: 8, y: 3 }],
+    coffeeMachine: { x: 8, y: 4 },
     meeting: [{ x: 5, y: 3 }],
     wander: [{ x: 3, y: 3 }, { x: 7, y: 3 }, { x: 4, y: 4 }, { x: 9, y: 3 }, { x: 2, y: 2 }],
     objects: [
@@ -81,6 +84,7 @@ function sharedKitchen(): RoomPlan {
     ],
     seats: bank.seats,
     kitchen: [{ x: 0, y: 2 }, { x: 2, y: 2 }],
+    coffeeMachine: { x: 1, y: 1 },
     meeting: [{ x: 1, y: 2 }, { x: 2, y: 3 }],
     wander: [{ x: 3, y: 3 }, { x: 8, y: 3 }, { x: 7, y: 4 }, { x: 10, y: 2 }, { x: 4, y: 4 }],
     objects: [
@@ -136,6 +140,7 @@ function openPlan(stage: "coworking" | "office" | "floor" | "hq" | "downsized"):
     cols: spec.cols, rows: spec.rows, furniture,
     seats: bank.seats,
     kitchen: [{ x: right - 1, y: 2 }, { x: right - 1, y: 3 }],
+    coffeeMachine: { x: right - 1, y: 1 },
     meeting: [{ x: 1, y: bottom - 2 }, { x: 2, y: bottom - 1 }, { x: 0, y: bottom - 1 }],
     wander,
     objects: [

@@ -24,4 +24,6 @@
 ## Interface
 
 - The title screen accepts a shareable numeric seed and offers a deterministic daily seed. Saves are device-local by design, matching the static-site constraint.
-- The six room objects are SVG elements with keyboard semantics and a parallel screen-reader action list. Visual panels originate near their diegetic object while remaining usable as full-height sheets on narrow screens.
+- The six room objects are painted into the pixel canvas with a parallel screen-reader action list. Clicking one now sends the founder to its nearest open floor tile before the panel appears; number keys remain the accessible shortcut.
+- The founder is the only player-controlled room agent. Cosmetic coworker movement cannot overwrite the founder's destination.
+- Coffee always costs $4. The first two cups in a founder day restore one Focus each; later cups deliberately produce only the jittery visual consequence.

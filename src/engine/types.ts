@@ -33,7 +33,7 @@ export interface WeekReport { week: number; cashDelta: number; revenue: number; 
 export interface PostMortem { ending: EndingId; title: string; grade: string; feedback: string; couldKnowWeek: number | null; couldKnowText: string; counterfactual: string; shareText: string; }
 export interface CompanyHistoryEntry { id: string; week: number; kind: CompanyHistoryKind; title: string; body: string; icon: string; }
 export interface ClosedCompany { companyNumber: number; startedWeek: number; closedWeek: number; finalCash: number; finalMrr: number; customers: number; peakHeadcount: number; history: CompanyHistoryEntry[]; }
-export interface FounderLegacy { cash: number; reputation: number; network: number; relationships: Record<string, number>; history: ClosedCompany[]; }
+export interface FounderLegacy { cash: number; reputation: number; network: number; relationships: Record<string, number>; history: ClosedCompany[]; coffeeDay: number; coffeeToday: number; jittery: boolean; }
 export interface CrisisState { active: boolean; choiceRequired: boolean; consecutiveNegativeWeeks: number; enteredWeek: number | null; crisesSurvived: number; }
 export interface GameCard { id: string; kind: "milestone" | "quarter" | "restart"; week: number; title: string; body: string; icon: string; }
 export interface QuarterReport { year: number; quarter: number; week: number; grade: "A" | "B" | "C" | "D"; title: string; body: string; officeBeat: "plant" | "paint" | "delivery"; }
@@ -42,7 +42,7 @@ export interface Task { id: string; title: string; detail: string; skill: Skill;
 export interface Finding { id: string; week: number; from: string; text: string; actedOn: boolean; }
 export interface Workload { overworkWeeks: number; burnout: number; }
 export interface GameState {
-  version: 5; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
+  version: 6; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
   truth: MarketTruth; beliefs: Beliefs; evidence: EvidenceCard[]; conviction: number; evidenceScore: number; overclaim: number; quietCorrectWeeks: number;
   pipeline: number; customers: Customer[]; churnPressure: number; churnedCustomers: number; closedDeals: number; mrr: number; previousMrr: number; price: number; reputation: number;
   shippedFeatures: FeatureId[]; selectedFeature: FeatureId; techDebt: number; onboardingQuality: number; people: Person[]; formerPeople: string[]; workspace: Workspace; headcountHistory: number[];

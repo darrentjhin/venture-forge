@@ -23,9 +23,12 @@ export function Help() {
 
         <h3>Focus is the real currency</h3>
         <p>
-          You get {BALANCE.baseFocus} Focus a week. Interviews, building, selling, hiring, and committing a belief all cost
-          Focus. Cash buys some things, but Focus is what you never have enough of.
+          You get {BALANCE.baseFocus} Focus for the founder's day. Work you do in person costs Focus; assigning a task to someone else is free.
+          The coffee machine restores 1 Focus for $4, twice a day. A third cup only makes you jittery.
         </p>
+
+        <h3>Walk the room</h3>
+        <p>Click the floor to walk there. Click a desk object and you will walk over before it opens. Walking takes real time.</p>
 
         <h3>Customer notes disagree sometimes</h3>
         <p>
@@ -52,7 +55,7 @@ export function Help() {
         </p>
 
         <h3>Keys</h3>
-        <p><span className="kbd">Esc</span> closes a panel · <span className="kbd">?</span> opens this.</p>
+        <p><span className="kbd">1–6</span> opens desk objects · <span className="kbd">Esc</span> closes a panel · <span className="kbd">?</span> opens this.</p>
       </div>
       <div className="report-foot">
         <button className="btn btn-primary" onClick={toggleHelp}>Back to it</button>
