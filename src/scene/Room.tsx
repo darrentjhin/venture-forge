@@ -2,10 +2,10 @@ import { useState } from "react";
 import { selectMoralePhrase, selectRoomStage, selectRunwayDisplay, selectRunwayMood } from "../engine/selectors";
 import type { GameState, PanelId, Person as PersonData } from "../engine/types";
 import { useGame } from "../store/useGame";
-import { IsoOffice } from "./IsoOffice";
+import { OfficeView } from "./OfficeView";
 
 const STAGE_LABELS = {
-  apartment: "APARTMENT", kitchen: "KITCHEN TABLE", coworking: "COWORKING CORNER",
+  apartment: "YOUR ROOM", kitchen: "KITCHEN TABLE", coworking: "COWORKING CORNER",
   office: "FIRST OFFICE", floor: "OFFICE FLOOR", hq: "HEADQUARTERS", downsized: "DOWNSIZED OFFICE",
 } as const;
 
@@ -26,7 +26,7 @@ export function Room({ state, onOpen }: { state: GameState; onOpen: (panel: Pane
       <b>{state.people.length + 1} {state.people.length === 0 ? "person" : "people"} · {selectRunwayDisplay(state)} left</b>
     </div>
 
-    <IsoOffice state={state} onOpen={onOpen} onHoverPerson={setHovered}/>
+    <OfficeView state={state} onOpen={onOpen} onHoverPerson={setHovered}/>
 
     {hovered && <aside className="person-card">
       <span>{hovered.role} · week {Math.max(1, state.week - hovered.hiredWeek + 1)}</span>

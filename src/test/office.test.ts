@@ -1,0 +1,88 @@
+import { describe, expect, it } from "vitest";
+import { findPath, isWalking, stepAgent, type Agent } from "../scene/room/agents";
+import { blockedTiles, planFor } from "../scene/room/plans";
+import { SEATS_REQUIRED } from "../scene/room/plans";
+
+function agentAt(x: number, y: number, seat: { x: number; y: number }): Agent {
+  return {
+    id: "a", label: "TEST", x, y, seat, path: [], target: null, facing: "down", motion: "typing",
+    dwell: 0, phase: 0, slumped: false, skin: 0, hair: 0, shirt: 0, pants: 0, glasses: false, hairStyle: 0,
+  };
+}
+
+describe("office rooms", () => {
+  it("gives every stage enough seats for the headcount that reaches it", () => {
+    for (const [stage, needed] of Object.entries(SEATS_REQUIRED)) {
+      const plan = planFor(stage as keyof typeof SEATS_REQUIRED);
+      expect(plan.seats.length, `${stage} seats`).toBeGreaterThanOrEqual(needed);
+    }
+  });
+
+  it("keeps every seat, destination and object inside the room", () => {
+    for (const stage of Object.keys(SEATS_REQUIRED) as (keyof typeof SEATS_REQUIRED)[]) {
+      const plan = planFor(stage);
+      const inside = (p: { x: number; y: number }) => p.x >= 0 && p.y >= 0 && p.x < plan.cols && p.y < plan.rows;
+      plan.seats.forEach((seat) => expect(inside(seat), `${stage} seat`).toBe(true));
+      plan.kitchen.forEach((p) => expect(inside(p), `${stage} kitchen`).toBe(true));
+      plan.meeting.forEach((p) => expect(inside(p), `${stage} meeting`).toBe(true));
+      plan.wander.forEach((p) => expect(inside(p), `${stage} wander`).toBe(true));
+      // Wall-mounted objects sit above row 0 on purpose.
+      plan.objects.forEach((o) => expect(o.tx >= 0 && o.tx < plan.cols, `${stage} object ${o.panel}`).toBe(true));
+    }
+  });
+
+  it("never seats two people on the same tile", () => {
+    for (const stage of Object.keys(SEATS_REQUIRED) as (keyof typeof SEATS_REQUIRED)[]) {
+      const plan = planFor(stage);
+      const keys = plan.seats.map((seat) => `${seat.x},${seat.y}`);
+      expect(new Set(keys).size, `${stage} duplicate seats`).toBe(keys.length);
+    }
+  });
+
+  it("paths around furniture rather than through it", () => {
+    const plan = planFor("office");
+    const blocked = blockedTiles(plan);
+    const path = findPath(plan, blocked, { x: 0, y: 0 }, plan.kitchen[0]);
+    expect(path.length).toBeGreaterThan(0);
+    // Only the destination may be a blocked tile (a seat tucked against a desk).
+    path.slice(0, -1).forEach((step) => expect(blocked.has(`${step.x},${step.y}`)).toBe(false));
+    // Each step is one orthogonal tile.
+    let previous = { x: 0, y: 0 };
+    for (const step of path) {
+      expect(Math.abs(step.x - previous.x) + Math.abs(step.y - previous.y)).toBe(1);
+      previous = step;
+    }
+  });
+
+  it("walks an agent to its seat and settles it there", () => {
+    const plan = planFor("office");
+    const blocked = blockedTiles(plan);
+    const seat = plan.seats[4];
+    const agent = agentAt(0, 0, seat);
+
+    let frame = 0;
+    while (frame < 4000 && (Math.abs(agent.x - seat.x) > .01 || Math.abs(agent.y - seat.y) > .01)) {
+      stepAgent(agent, plan, blocked, frame);
+      frame += 1;
+    }
+    expect(agent.x).toBeCloseTo(seat.x, 5);
+    expect(agent.y).toBeCloseTo(seat.y, 5);
+
+    // Once settled it dwells, faces the camera, and stops reporting as walking.
+    stepAgent(agent, plan, blocked, frame);
+    expect(agent.dwell).toBeGreaterThan(0);
+    expect(agent.facing).toBe("down");
+    expect(isWalking(agent)).toBe(false);
+  });
+
+  it("sends an agent to the kitchen when the simulation says coffee", () => {
+    const plan = planFor("office");
+    const blocked = blockedTiles(plan);
+    const agent = agentAt(plan.seats[0].x, plan.seats[0].y, plan.seats[0]);
+    agent.motion = "coffee";
+
+    for (let frame = 0; frame < 4000; frame += 1) stepAgent(agent, plan, blocked, frame);
+    const target = plan.kitchen.some((k) => Math.abs(agent.x - k.x) < .01 && Math.abs(agent.y - k.y) < .01);
+    expect(target).toBe(true);
+  });
+});

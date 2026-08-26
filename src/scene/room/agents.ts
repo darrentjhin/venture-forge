@@ -1,30 +1,33 @@
 import type { PersonMotion } from "../../engine/types";
 import type { Point } from "./geometry";
-import type { OfficePlan } from "./officePlans";
+import type { RoomPlan } from "./plans";
+import type { Facing } from "./sprites";
 
 export interface Agent {
   id: string;
-  name: string;
+  label: string;
   /** Fractional tile position. */
   x: number; y: number;
   seat: Point;
   path: Point[];
+  /** Chosen once per motion; recomputing it each frame makes agents oscillate. */
   target: Point | null;
-  facing: "se" | "sw" | "ne" | "nw";
+  facing: Facing;
   motion: PersonMotion;
-  /** Frames to wait once the destination is reached. */
+  /** Frames to stay put once the destination is reached. */
   dwell: number;
   phase: number;
   slumped: boolean;
-  skin: number; shirt: number; hair: number; glasses: boolean;
+  skin: number; hair: number; shirt: number; pants: number;
+  glasses: boolean; hairStyle: number;
 }
 
-const SPEED = 0.028; // tiles per frame
+const SPEED = 0.05; // tiles per frame
 
-function key(x: number, y: number) { return `${x},${y}`; }
+const key = (x: number, y: number) => `${x},${y}`;
 
-/** Breadth-first path on the tile grid. Grids here are small, so this is cheap. */
-export function findPath(plan: OfficePlan, blocked: Set<string>, from: Point, to: Point): Point[] {
+/** Breadth-first path over the tile grid. Rooms are small, so this is cheap. */
+export function findPath(plan: RoomPlan, blocked: Set<string>, from: Point, to: Point): Point[] {
   const start = { x: Math.round(from.x), y: Math.round(from.y) };
   const goal = { x: Math.round(to.x), y: Math.round(to.y) };
   if (start.x === goal.x && start.y === goal.y) return [];
@@ -36,14 +39,13 @@ export function findPath(plan: OfficePlan, blocked: Set<string>, from: Point, to
   while (queue.length) {
     const current = queue.shift()!;
     if (current.x === goal.x && current.y === goal.y) break;
-    const neighbours = [
+    for (const next of [
       { x: current.x + 1, y: current.y }, { x: current.x - 1, y: current.y },
       { x: current.x, y: current.y + 1 }, { x: current.x, y: current.y - 1 },
-    ];
-    for (const next of neighbours) {
+    ]) {
       const id = key(next.x, next.y);
       if (!inBounds(next) || cameFrom.has(id)) continue;
-      // The goal itself may be a seat tucked against furniture, so allow it.
+      // The goal may be a seat wedged against furniture, so always allow it.
       if (blocked.has(id) && !(next.x === goal.x && next.y === goal.y)) continue;
       cameFrom.set(id, current);
       queue.push(next);
@@ -57,45 +59,46 @@ export function findPath(plan: OfficePlan, blocked: Set<string>, from: Point, to
     path.unshift(cursor);
     cursor = cameFrom.get(key(cursor.x, cursor.y)) ?? null;
   }
-  path.shift(); // drop the tile we are already standing on
+  path.shift(); // drop the tile already occupied
   return path;
 }
 
-/** Where a given simulation motion should send an agent. */
-export function destinationFor(agent: Agent, motion: PersonMotion, plan: OfficePlan, roll: number): Point {
-  const pick = (list: Point[]) => list.length ? list[roll % list.length] : agent.seat;
-  switch (motion) {
+/** Where a simulation motion sends an agent. */
+export function destinationFor(agent: Agent, plan: RoomPlan, roll: number): Point {
+  const pick = (list: Point[]) => (list.length ? list[roll % list.length] : agent.seat);
+  switch (agent.motion) {
     case "coffee": return pick(plan.kitchen);
     case "meeting": return pick(plan.meeting);
-    case "walking": return pick(plan.wander);
+    case "walking":
     case "talking": return pick(plan.wander);
-    case "leaving": return { x: 0, y: Math.floor(plan.rows / 2) };
+    case "leaving": return { x: 0, y: 0 };
     default: return agent.seat;
   }
 }
 
-function faceToward(agent: Agent, dx: number, dy: number) {
-  if (Math.abs(dx) >= Math.abs(dy)) agent.facing = dx > 0 ? "se" : "nw";
-  else agent.facing = dy > 0 ? "sw" : "ne";
+export function isWalking(agent: Agent): boolean {
+  return agent.path.length > 0 && agent.dwell === 0;
 }
 
 /** Advances one agent by a frame. */
-export function stepAgent(agent: Agent, plan: OfficePlan, blocked: Set<string>, frame: number) {
+export function stepAgent(agent: Agent, plan: RoomPlan, blocked: Set<string>, frame: number) {
   if (agent.dwell > 0) { agent.dwell -= 1; return; }
 
+  // Pick a destination once and hold it. Re-deriving it every frame would flip
+  // between equivalent tiles (the two kitchen spots) and never arrive.
+  if (!agent.target) agent.target = destinationFor(agent, plan, agent.phase + frame);
+  const want = agent.target;
+
   if (!agent.path.length) {
-    const wanted = destinationFor(agent, agent.motion, plan, agent.phase + frame);
-    const atTarget = Math.abs(agent.x - wanted.x) < .12 && Math.abs(agent.y - wanted.y) < .12;
-    if (atTarget) {
-      // Settle exactly on the tile and idle for a while.
-      agent.x = wanted.x; agent.y = wanted.y;
-      agent.dwell = 40 + (agent.phase % 60);
-      if (agent.motion === "typing" || agent.motion === "thinking") agent.facing = "se";
+    if (Math.abs(agent.x - want.x) < .1 && Math.abs(agent.y - want.y) < .1) {
+      agent.x = want.x; agent.y = want.y;
+      agent.dwell = 50 + (agent.phase % 90);
+      // Settled agents face the camera so the office reads as populated.
+      agent.facing = "down";
       return;
     }
-    agent.path = findPath(plan, blocked, agent, wanted);
-    agent.target = wanted;
-    if (!agent.path.length) { agent.x = wanted.x; agent.y = wanted.y; return; }
+    agent.path = findPath(plan, blocked, agent, want);
+    if (!agent.path.length) { agent.x = want.x; agent.y = want.y; return; }
   }
 
   const next = agent.path[0];
@@ -107,11 +110,8 @@ export function stepAgent(agent: Agent, plan: OfficePlan, blocked: Set<string>, 
     agent.path.shift();
     return;
   }
-  faceToward(agent, dx, dy);
+  if (Math.abs(dx) >= Math.abs(dy)) agent.facing = dx > 0 ? "right" : "left";
+  else agent.facing = dy > 0 ? "down" : "up";
   agent.x += (dx / distance) * SPEED;
   agent.y += (dy / distance) * SPEED;
-}
-
-export function isWalking(agent: Agent): boolean {
-  return agent.path.length > 0 && agent.dwell === 0;
 }

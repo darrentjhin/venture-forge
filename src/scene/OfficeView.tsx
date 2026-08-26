@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { appearanceFromId } from "../engine/people";
 import { selectRoomStage, selectRunwayMood } from "../engine/selectors";
 import type { GameState, PanelId, Person, PersonMotion } from "../engine/types";
-import { isWalking, stepAgent, type Agent } from "./iso/agents";
-import { drawAgent, drawFloor, drawFurniture, drawObject, drawWalls, paletteFor, type ObjectHit } from "./iso/draw";
-import { toScreen, viewFor } from "./iso/geometry";
-import { blockedTiles, planFor } from "./iso/officePlans";
+import { isWalking, stepAgent, type Agent } from "./room/agents";
+import { TILE, tileFloor, toScreen, viewFor } from "./room/geometry";
+import { paletteFor } from "./room/palette";
+import { blockedTiles, planFor } from "./room/plans";
+import { drawCharacter, drawFurniture, drawObject, drawRoomShell, drawTag, drawWallDecor, px, type ObjectHit } from "./room/sprites";
 
-const MOTIONS: PersonMotion[] = ["typing", "typing", "typing", "thinking", "walking", "coffee", "meeting", "talking"];
+const MOTIONS: PersonMotion[] = ["typing", "typing", "typing", "typing", "thinking", "walking", "coffee", "meeting", "talking"];
 
 function rollMotion(person: Person, roll: number): PersonMotion {
   if (person.morale < 35 && roll % 5 < 2) return "struggling";
@@ -15,18 +16,25 @@ function rollMotion(person: Person, roll: number): PersonMotion {
   return MOTIONS[roll % MOTIONS.length];
 }
 
+const ROLE_TAGS: Record<string, string> = {
+  Cofounder: "COFOUNDER", Engineer: "ENGINEER", Designer: "DESIGNER",
+  Sales: "SALES", "Customer success": "SUCCESS", Operations: "OPS",
+};
+
 function makeAgent(person: Person, seat: { x: number; y: number }, index: number): Agent {
   const look = appearanceFromId(person.id);
   return {
-    id: person.id, name: person.name,
+    id: person.id,
+    label: person.name === "You" ? "YOU" : ROLE_TAGS[person.role] ?? person.role.toUpperCase(),
     x: seat.x, y: seat.y, seat, path: [], target: null,
-    facing: "se", motion: "typing", dwell: index * 7, phase: (index * 37) % 120,
+    facing: "down", motion: "typing", dwell: index * 11, phase: (index * 41) % 140,
     slumped: person.morale < 35,
-    skin: look.skin, shirt: look.shirt, hair: look.hair, glasses: look.glasses,
+    skin: look.skin, hair: look.hair, shirt: look.shirt, pants: (look.head + index) % 4,
+    glasses: look.glasses, hairStyle: look.hair,
   };
 }
 
-export function IsoOffice({ state, onOpen, onHoverPerson }: {
+export function OfficeView({ state, onOpen, onHoverPerson }: {
   state: GameState;
   onOpen: (panel: PanelId) => void;
   onHoverPerson: (person: Person | null) => void;
@@ -52,78 +60,64 @@ export function IsoOffice({ state, onOpen, onHoverPerson }: {
   const unread = state.evidence.filter((card) => !card.read).length;
   const metricPulse = state.history.length > 2 && Math.abs(state.mrr - state.previousMrr) / Math.max(1, state.previousMrr) > .15;
 
-  // Keep the agent list in step with the roster, preserving positions of people
-  // who are still here so nobody teleports when a hire arrives.
+  // Keep agents in step with the roster, preserving positions of people who
+  // are still here so nobody teleports when a hire arrives.
   useEffect(() => {
     const existing = new Map(agentsRef.current.map((agent) => [agent.id, agent]));
     agentsRef.current = people.slice(0, plan.seats.length).map((person, index) => {
       const seat = plan.seats[index] ?? plan.seats[plan.seats.length - 1];
       const found = existing.get(person.id);
       if (!found) return makeAgent(person, seat, index);
-      found.seat = seat;
+      if (found.seat.x !== seat.x || found.seat.y !== seat.y) { found.seat = seat; found.target = null; found.path = []; }
       found.slumped = person.morale < 35;
-      found.name = person.name;
       return found;
     });
   }, [people, plan]);
 
-  const badges: Partial<Record<PanelId, number>> = {
-    notebook: unread,
-    inbox: state.pendingEvents.length,
-    roadmap: 0,
-  };
-
   const render = useCallback((frame: number) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-    const palette = paletteFor(mood);
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const p = paletteFor(mood);
     const { origin } = view;
+    const showTags = agentsRef.current.length <= 10;
 
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = mood >= 4 ? "#1d1a17" : "#c3b7a2";
-    ctx.fillRect(0, 0, view.width, view.height);
+    px(ctx, 0, 0, view.width, view.height, "#0d1119");
+    drawRoomShell(ctx, plan.cols, plan.rows, origin, p);
+    drawWallDecor(ctx, plan.cols, origin, p, mood, state.week);
 
-    drawWalls(ctx, plan.cols, plan.rows, origin, palette);
-    drawFloor(ctx, plan.cols, plan.rows, origin, palette);
-
-    // Wall calendar, so the week is readable inside the fiction too.
-    const cal = toScreen(2, -1, origin);
-    ctx.fillStyle = "#f5f1e9";
-    ctx.fillRect(Math.round(cal.x - 9), Math.round(cal.y - 26), 18, 14);
-    ctx.fillStyle = "#e1523d";
-    ctx.fillRect(Math.round(cal.x - 9), Math.round(cal.y - 26), 18, 4);
-    ctx.fillStyle = "#22201d";
-    ctx.font = "7px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText(`W${state.week}`, Math.round(cal.x), Math.round(cal.y - 15));
-
-    // Everything on the floor is depth-sorted so people pass behind desks.
     const hits: ObjectHit[] = [];
     type Item = { depth: number; order: number; paint: () => void };
     const items: Item[] = [];
 
-    plan.furniture.forEach((furniture, index) => items.push({
-      depth: furniture.tx + furniture.ty, order: furniture.kind === "rug" ? -1 : index,
-      paint: () => drawFurniture(ctx, furniture, origin, palette),
+    plan.furniture.forEach((item, index) => items.push({
+      depth: item.ty, order: item.kind === "rug" ? -100 : index,
+      paint: () => {
+        const { x, y } = toScreen(item.tx, item.ty, origin);
+        drawFurniture(ctx, item.kind, x, y, item.tx * 3 + item.ty, p);
+      },
     }));
 
     plan.objects.forEach((object) => items.push({
-      depth: object.tx + object.ty, order: 500,
-      paint: () => hits.push(drawObject(ctx, object, origin, {
-        hovered: hoveredPanel === object.panel,
-        badge: badges[object.panel],
-        pulse: object.panel === "metrics" ? metricPulse : object.panel === "capital" ? state.conviction >= 55 : false,
-        frame,
-      })),
+      depth: object.ty, order: 500,
+      paint: () => {
+        const { x, y } = toScreen(object.tx, object.ty, origin);
+        hits.push(drawObject(ctx, object.kind, object.panel, x, y, {
+          hovered: hoveredPanel === object.panel,
+          badge: object.panel === "notebook" ? unread : object.panel === "inbox" ? state.pendingEvents.length : 0,
+          pulse: object.panel === "metrics" ? metricPulse : object.panel === "capital" ? state.conviction >= 55 : false,
+          frame,
+        }));
+      },
     }));
 
     agentsRef.current.forEach((agent, index) => items.push({
-      depth: agent.x + agent.y, order: 900 + index,
-      paint: () => drawAgent(ctx, {
-        x: agent.x, y: agent.y, skin: agent.skin, shirt: agent.shirt, hair: agent.hair, glasses: agent.glasses,
-        facing: agent.facing, walking: isWalking(agent), slumped: agent.slumped, phase: agent.phase,
-      }, origin, frame, false),
+      depth: agent.y, order: 400 + index,
+      paint: () => {
+        const foot = tileFloor(agent.x, agent.y, origin);
+        drawCharacter(ctx, foot.x, foot.y, { ...agent, walking: isWalking(agent) }, frame);
+        if (showTags) drawTag(ctx, foot.x, foot.y - 34, agent.label);
+      },
     }));
 
     items.sort((a, b) => a.depth - b.depth || a.order - b.order);
@@ -131,31 +125,37 @@ export function IsoOffice({ state, onOpen, onHoverPerson }: {
 
     hitsRef.current = hits;
 
-    if (palette.shadeAlpha > 0) {
-      ctx.globalAlpha = palette.shadeAlpha;
-      ctx.fillStyle = palette.shade;
-      ctx.fillRect(0, 0, view.width, view.height);
+    // Warm lamp wash, then a cool dim as the runway shortens.
+    if (p.glow > 0) {
+      ctx.globalAlpha = p.glow;
+      px(ctx, 0, 0, view.width, view.height, "#ffb454");
+      ctx.globalAlpha = 1;
+    }
+    if (p.dim > 0) {
+      ctx.globalAlpha = p.dim;
+      px(ctx, 0, 0, view.width, view.height, "#0a1420");
       ctx.globalAlpha = 1;
     }
   }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, metricPulse, unread]);
 
-  // Paint one frame synchronously so a background tab still shows the office.
+  // One synchronous frame, so a tab loaded in the background is never blank.
   useEffect(() => { render(0); }, [render]);
 
   useEffect(() => {
     let frame = 0;
     let raf = 0;
-    let behaviour = 0;
+    let sinceRoll = 0;
     const loop = () => {
       frame += 1;
-      behaviour += 1;
-      if (behaviour > 90) {
-        behaviour = 0;
+      sinceRoll += 1;
+      if (sinceRoll > 70 && agentsRef.current.length) {
+        sinceRoll = 0;
         const agent = agentsRef.current[Math.floor(Math.random() * agentsRef.current.length)];
-        const person = people.find((item) => item.id === agent?.id);
-        if (agent && person) {
+        const person = people.find((item) => item.id === agent.id);
+        if (person) {
           agent.motion = rollMotion(person, Math.floor(Math.random() * 100));
           agent.path = [];
+          agent.target = null;
           agent.dwell = 0;
         }
       }
@@ -171,45 +171,47 @@ export function IsoOffice({ state, onOpen, onHoverPerson }: {
     const canvas = canvasRef.current;
     if (!canvas) return { x: -999, y: -999 };
     const rect = canvas.getBoundingClientRect();
+    // object-fit: contain letterboxes the canvas, so back out the real box.
+    const scale = Math.min(rect.width / view.width, rect.height / view.height);
+    const drawnW = view.width * scale;
+    const drawnH = view.height * scale;
     return {
-      x: ((event.clientX - rect.left) / rect.width) * view.width,
-      y: ((event.clientY - rect.top) / rect.height) * view.height,
+      x: (event.clientX - rect.left - (rect.width - drawnW) / 2) / scale,
+      y: (event.clientY - rect.top - (rect.height - drawnH) / 2) / scale,
     };
   }, [view]);
 
+  const hitAt = (point: { x: number; y: number }) =>
+    hitsRef.current.find((item) => point.x >= item.x && point.x <= item.x + item.w && point.y >= item.y && point.y <= item.y + item.h);
+
   const handleMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     const point = toInternal(event);
-    const hit = hitsRef.current.find((item) => point.x >= item.x && point.x <= item.x + item.w && point.y >= item.y && point.y <= item.y + item.h);
+    const hit = hitAt(point);
     setHoveredPanel((hit?.panel as PanelId) ?? null);
+    if (hit) { onHoverPerson(null); return; }
 
-    if (!hit) {
-      const { origin } = view;
-      const near = agentsRef.current.find((agent) => {
-        const screen = toScreen(agent.x, agent.y, view.origin);
-        return Math.abs(screen.x - point.x) < 6 && point.y > screen.y - 16 && point.y < screen.y + 4;
-      });
-      const person = near ? people.find((item) => item.id === near.id) ?? null : null;
-      onHoverPerson(person);
-    } else {
-      onHoverPerson(null);
-    }
+    const { origin } = view;
+    const near = agentsRef.current.find((agent) => {
+      const foot = tileFloor(agent.x, agent.y, origin);
+      return Math.abs(foot.x - point.x) < 11 && point.y > foot.y - 32 && point.y < foot.y + 3;
+    });
+    onHoverPerson(near ? people.find((item) => item.id === near.id) ?? null : null);
   }, [toInternal, view, people, onHoverPerson]);
 
   const handleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const point = toInternal(event);
-    const hit = hitsRef.current.find((item) => point.x >= item.x && point.x <= item.x + item.w && point.y >= item.y && point.y <= item.y + item.h);
+    const hit = hitAt(toInternal(event));
     if (hit) onOpen(hit.panel as PanelId);
   }, [toInternal, onOpen]);
 
   return <canvas
     ref={canvasRef}
-    className="iso-canvas"
+    className="office-canvas"
     width={view.width}
     height={view.height}
     style={{ cursor: hoveredPanel ? "pointer" : "default" }}
     onMouseMove={handleMove}
     onMouseLeave={() => { setHoveredPanel(null); onHoverPerson(null); }}
     onClick={handleClick}
-    aria-label="Isometric view of the company office"
+    aria-label="Pixel-art view of the company office"
   />;
 }

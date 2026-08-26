@@ -195,7 +195,7 @@ p { margin: 0; }
 .room-wrap.mood-0, .room-wrap.mood-1 { background: #2b2823; }
 .room-wrap.mood-2, .room-wrap.mood-3 { background: #241f1b; }
 
-.iso-canvas {
+.office-canvas {
   /* Absolute inset gives the element a definite box; without it the canvas
      keeps its intrinsic aspect ratio and overflows the room. */
   position: absolute; inset: 0;
