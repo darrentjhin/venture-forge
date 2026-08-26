@@ -19,5 +19,8 @@ export function cloneGameState(state: GameState): GameState {
     investors: state.investors.map((investor) => ({ ...investor, thesisSegments: [...investor.thesisSegments], portfolio: [...investor.portfolio], passes: investor.passes.map((pass) => ({ ...pass })) })),
     rounds: state.rounds.map((round) => ({ ...round, commitments: round.commitments.map((commitment) => ({ ...commitment })), meetings: round.meetings.map((meeting) => ({ ...meeting, outcome: meeting.outcome.kind === "termSheet" ? { kind: "termSheet", sheet: { ...meeting.outcome.sheet } } : { ...meeting.outcome } })) })),
     capTable: state.capTable.map((entry) => ({ ...entry })),
+    officeMove: state.officeMove ? { ...state.officeMove } : null,
+    productLines: state.productLines.map((line) => ({ ...line, shippedFeatures: [...line.shippedFeatures] })),
+    portfolio: state.portfolio.map((company) => ({ ...company, people: company.people.map((person) => ({ ...person, beliefs: { ...person.beliefs }, appearance: { ...person.appearance } })) })),
   };
 }

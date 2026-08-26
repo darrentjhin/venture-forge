@@ -5,7 +5,7 @@ export const BALANCE = {
   founderWeeklyLiving: 600,
   toolingWeekly: 50,
   infraPerCustomerWeekly: 2,
-  workspaceWeekly: { apartment: 0, kitchen: 0, coworking: 300, office: 1500, floor: 3200, hq: 6400 },
+  workspaceWeekly: { apartment: 0, kitchen: 100, coworking: 300, office: 1500, floor: 3200, hq: 6400 },
   seatCostWeekly: 120,
   salaryRange: { junior: [900, 1400], mid: [1500, 2100], senior: [2200, 3200] },
   baseChurnWeekly: 0.02,

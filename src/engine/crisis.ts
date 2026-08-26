@@ -33,6 +33,8 @@ function archiveAndRestart(state: GameState): GameState {
   fresh.cash = Math.max(BALANCE.startingCash, state.founder.cash);
   fresh.reputation = reputation;
   fresh.founder = { ...state.founder, reputation, history, relationships: { ...state.founder.relationships } };
+  fresh.portfolio = state.portfolio.map((company) => ({ ...company, people: company.people.map((person) => ({ ...person, beliefs: { ...person.beliefs }, appearance: { ...person.appearance } })) }));
+  fresh.holdingDividends = state.holdingDividends;
   fresh.investors.forEach((investor) => {
     const relationship = fresh.founder.relationships[investor.id];
     if (relationship !== undefined) { investor.relationship = relationship; investor.discovered = true; }

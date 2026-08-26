@@ -6,11 +6,13 @@ import { resolveEvent as resolveEngineEvent } from "../engine/events";
 import { newRun } from "../engine/init";
 import { advanceWeek } from "../engine/week";
 import { resolveCrisis as resolveEngineCrisis } from "../engine/crisis";
-import type { ActionId, BeliefKey, CrisisChoiceId, GameState, InvestorKind, PanelId } from "../engine/types";
+import type { ActionId, BeliefKey, CrisisChoiceId, GameState, InvestorKind, PanelId, Workspace } from "../engine/types";
+import type { FeatureId } from "../data/features";
 import { migrateGameState } from "./migrate";
 import { assignTask as assignEngineTask, unassignTask as unassignEngineTask } from "../engine/tasks";
 import { drinkCoffee as drinkEngineCoffee } from "../engine/founder";
 import { acceptTermSheet as acceptEngineTermSheet, closeRound as closeEngineRound, counterTermSheet as counterEngineTermSheet, discoverInvestors as discoverEngineInvestors, openRound as openEngineRound, pitchInvestor as pitchEngineInvestor, researchInvestor as researchEngineInvestor, walkFromTermSheet as walkEngineTermSheet, type CounterAxis } from "../engine/fundraising";
+import { appointCeoAndStartCompany as appointEngineCeo, selectProductFeature as selectEngineProductFeature, shipProductFeature as shipEngineProductFeature, startOfficeMove as startEngineOfficeMove, startProductLine as startEngineProductLine } from "../engine/growth";
 
 interface GameStore {
   game: GameState | null;
@@ -20,6 +22,7 @@ interface GameStore {
   helpOpen: boolean;
   muted: boolean;
   musicEnabled: boolean;
+  visitedCompanyId: string | null;
   start: (seed: number) => void;
   continueRun: () => void;
   abandon: () => void;
@@ -45,16 +48,22 @@ interface GameStore {
   acceptTermSheet: (investorId: string) => void;
   walkFromTermSheet: (investorId: string) => void;
   closeRound: () => void;
+  startOfficeMove: (target: Workspace) => void;
+  startProductLine: () => void;
+  selectProductFeature: (lineId: string, feature: FeatureId) => void;
+  shipProductFeature: (lineId: string) => void;
+  appointCeo: (personId: string | null) => void;
+  visitCompany: (companyId: string | null) => void;
   toggleHelp: () => void;
   toggleMuted: () => void;
   toggleMusic: () => void;
 }
 
 export const useGame = create<GameStore>()(persist((set) => ({
-  game: null, screen: "title", panel: null, reportOpen: false, helpOpen: false, muted: false, musicEnabled: false,
-  start: (seed) => set({ game: newRun(seed), screen: "game", panel: null, reportOpen: false }),
+  game: null, screen: "title", panel: null, reportOpen: false, helpOpen: false, muted: false, musicEnabled: false, visitedCompanyId: null,
+  start: (seed) => set({ game: newRun(seed), screen: "game", panel: null, reportOpen: false, visitedCompanyId: null }),
   continueRun: () => set({ screen: "game" }),
-  abandon: () => set({ screen: "title", panel: null, reportOpen: false }),
+  abandon: () => set({ screen: "title", panel: null, reportOpen: false, visitedCompanyId: null }),
   openPanel: (panel) => set({ panel }),
   queueAction: (id, target) => set((store) => store.game ? { game: queueEngineAction(store.game, id, target) } : {}),
   commitBelief: (key, value) => set((store) => store.game ? { game: commitEngineBelief(store.game, key, value) } : {}),
@@ -91,15 +100,21 @@ export const useGame = create<GameStore>()(persist((set) => ({
   acceptTermSheet: (investorId) => set((store) => store.game ? { game: acceptEngineTermSheet(store.game, investorId) } : {}),
   walkFromTermSheet: (investorId) => set((store) => store.game ? { game: walkEngineTermSheet(store.game, investorId) } : {}),
   closeRound: () => set((store) => store.game ? { game: closeEngineRound(store.game) } : {}),
+  startOfficeMove: (target) => set((store) => store.game ? { game: startEngineOfficeMove(store.game, target) } : {}),
+  startProductLine: () => set((store) => store.game ? { game: startEngineProductLine(store.game) } : {}),
+  selectProductFeature: (lineId, feature) => set((store) => store.game ? { game: selectEngineProductFeature(store.game, lineId, feature) } : {}),
+  shipProductFeature: (lineId) => set((store) => store.game ? { game: shipEngineProductFeature(store.game, lineId) } : {}),
+  appointCeo: (personId) => set((store) => store.game ? { game: appointEngineCeo(store.game, personId), panel: null, visitedCompanyId: null } : {}),
+  visitCompany: (companyId) => set({ visitedCompanyId: companyId, panel: null }),
   toggleHelp: () => set((store) => ({ helpOpen: !store.helpOpen })),
   toggleMuted: () => set((store) => ({ muted: !store.muted })),
   toggleMusic: () => set((store) => ({ musicEnabled: !store.musicEnabled })),
 }), {
   name: "venture-forge-v3",
-  version: 7,
+  version: 8,
   migrate: (persisted) => {
     const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean; musicEnabled?: boolean } : {};
     return { ...old, game: migrateGameState(old.game) };
   },
-  partialize: (store) => ({ game: store.game?.version === 7 ? store.game : null, muted: store.muted, musicEnabled: store.musicEnabled }),
+  partialize: (store) => ({ game: store.game?.version === 8 ? store.game : null, muted: store.muted, musicEnabled: store.musicEnabled }),
 }));

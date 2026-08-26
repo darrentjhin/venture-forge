@@ -14,7 +14,7 @@ const PANELS: { id: PanelId; label: string }[] = [
   { id: "roadmap", label: "Roadmap" }, { id: "team", label: "Team" }, { id: "capital", label: "Capital" },
 ];
 
-export function Room({ state, onOpen }: { state: GameState; onOpen: (panel: PanelId) => void }) {
+export function Room({ state, onOpen, readOnly = false }: { state: GameState; onOpen: (panel: PanelId) => void; readOnly?: boolean }) {
   const [hovered, setHovered] = useState<PersonData | null>(null);
   const [coffeeMessage, setCoffeeMessage] = useState<string | null>(null);
   const queueAction = useGame((store) => store.queueAction);
@@ -29,6 +29,7 @@ export function Room({ state, onOpen }: { state: GameState; onOpen: (panel: Pane
     </div>
 
     <OfficeView state={state} onOpen={onOpen} onHoverPerson={setHovered} onCoffee={() => {
+      if (readOnly) return;
       const message = drinkCoffee();
       setCoffeeMessage(message);
       window.setTimeout(() => setCoffeeMessage(null), 2400);
@@ -40,7 +41,7 @@ export function Room({ state, onOpen }: { state: GameState; onOpen: (panel: Pane
       <span>{hovered.role} · week {Math.max(1, state.week - hovered.hiredWeek + 1)}</span>
       <strong>{hovered.name}</strong>
       <p>{selectMoralePhrase(hovered)}. {hovered.quirk}</p>
-      {hovered.name !== "You" && <button onClick={() => queueAction("oneOnOne", hovered.id)} disabled={state.focus < 1}>
+      {!readOnly && hovered.name !== "You" && <button onClick={() => queueAction("oneOnOne", hovered.id)} disabled={state.focus < 1}>
         Run a 1:1 · 1 Focus
       </button>}
     </aside>}

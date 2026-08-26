@@ -43,6 +43,9 @@ function pickAction(state: GameState, policy: Policy, roll: number): ActionDef |
 
 function play(seed: number, policy: Policy): GameState {
   let state = newRun(seed); let policyRng = seed ^ 0xa5a5a5a5;
+  // This benchmark exercises the operating economy; dropping the unused pitch
+  // roster avoids cloning 40 static investor profiles on every simulated move.
+  state.investors = [];
   while (state.companyNumber === 1 && !state.crisis.choiceRequired && state.week <= 104) {
     state = resolveAll(state);
     if (policy === "research" && state.evidence.length) {
@@ -63,9 +66,17 @@ function play(seed: number, policy: Policy): GameState {
       state = queued;
     }
     state = advanceWeek(state);
-    assertFiniteState(state);
+    assertFiniteEconomy(state);
   }
+  assertFiniteState(state);
   return state;
+}
+
+function assertFiniteEconomy(state: GameState) {
+  const values = [state.cash, state.mrr, state.previousMrr, state.pipeline, state.focus, state.conviction, state.evidenceScore, state.techDebt, state.valuation, state.churnPressure];
+  if (values.some((value) => !Number.isFinite(value))) throw new Error("operating economy must stay finite");
+  if (state.customers.length < 0) throw new Error("customer count cannot be negative");
+  if (state.week > 105) throw new Error("benchmark exceeded its year-one horizon");
 }
 
 function assertFiniteState(state: GameState) {
@@ -75,14 +86,17 @@ function assertFiniteState(state: GameState) {
     else if (value && typeof value === "object") Object.entries(value).forEach(([childKey, child]) => visit(child, `${key}.${childKey}`));
   };
   visit(state);
-  if (state.customers.length < 0) throw new Error("customer count cannot be negative");
-  if (state.week > 105) throw new Error("benchmark exceeded its year-one horizon");
 }
+
+// Vitest runs in Node, but this is a browser project with no Node types on the
+// app code. Declaring it here keeps `process` out of everything else.
+declare const process: { env: Record<string, string | undefined> };
 
 describe("2,000-run balance simulation", () => {
   it("stays finite and rewards research over premature growth", () => {
+    const runCount = Number(process.env.BALANCE_RUNS ?? 2_000);
     const counts: Record<Policy, { runs: number; wins: number }> = { random: { runs: 0, wins: 0 }, greedy: { runs: 0, wins: 0 }, research: { runs: 0, wins: 0 } };
-    for (let index = 0; index < 2000; index += 1) {
+    for (let index = 0; index < runCount; index += 1) {
       const policy: Policy = index % 3 === 0 ? "random" : index % 3 === 1 ? "greedy" : "research";
       const result = play(1000 + index * 17, policy);
       counts[policy].runs += 1;
@@ -90,9 +104,10 @@ describe("2,000-run balance simulation", () => {
       if (benchmarkEnding && WINS.has(benchmarkEnding)) counts[policy].wins += 1;
     }
     const totalWins = counts.random.wins + counts.greedy.wins + counts.research.wins;
-    const overall = totalWins / 2000;
+    const overall = totalWins / runCount;
     const greedy = counts.greedy.wins / counts.greedy.runs;
     const research = counts.research.wins / counts.research.runs;
+    console.info({ runCount, overall, greedy, research });
     expect(overall).toBeGreaterThanOrEqual(.15);
     expect(overall).toBeLessThanOrEqual(.45);
     expect(research - greedy).toBeGreaterThanOrEqual(.08);

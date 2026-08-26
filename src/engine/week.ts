@@ -9,9 +9,10 @@ import { EMERGENCY_LOAN_WEEKLY_RATE, processCrisis } from "./crisis";
 import { evaluateEvents } from "./events";
 import { fireNextMilestone } from "./milestones";
 import { computeFocus, updatePeople } from "./people";
-import type { Customer, GameState, Workspace } from "./types";
+import type { Customer, GameState } from "./types";
 import { addWeeklyTask, processTasks } from "./tasks";
 import { processFundraisingWeek } from "./fundraising";
+import { finishOfficeMove, processPortfolio, processProductLines } from "./growth";
 
 function customerSegment(state: GameState, index: number, alignment: number): SegmentId {
   if (alignment >= .58) return index % 4 === 3 ? state.truth.secondaryBuyer : state.truth.buyer;
@@ -31,19 +32,13 @@ function addCustomers(state: GameState, count: number, alignment: number): void 
   state.closedDeals += count;
 }
 
-function workspaceFor(count: number, cap: Workspace | null): Workspace {
-  const desired: Workspace = count <= 1 ? "apartment" : count <= 2 ? "kitchen" : count <= 5 ? "coworking" : count <= 12 ? "office" : count <= 25 ? "floor" : "hq";
-  if (!cap) return desired;
-  const tiers: Workspace[] = ["apartment", "kitchen", "coworking", "office", "floor", "hq"];
-  return tiers[Math.min(tiers.indexOf(desired), tiers.indexOf(cap))];
-}
-
 export function advanceWeek(input: GameState): GameState {
   if (input.crisis.choiceRequired || input.pendingEvents.length > 0) return input;
   const applied = applyQueuedActions(input);
   const state = applied.state;
   const notes = [...applied.notes];
   notes.push(...processTasks(state));
+  processProductLines(state);
 
   state.focus = computeFocus(state);
   state.nextFocusBonus = state.nextFocusBonus > 0 ? 0 : Math.min(0, state.nextFocusBonus + 1);
@@ -56,7 +51,8 @@ export function advanceWeek(input: GameState): GameState {
   if (newCustomers) notes.push(`${newCustomers} customer${newCustomers === 1 ? "" : "s"} converted from the active pipeline.`);
 
   state.previousMrr = state.mrr;
-  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0) + state.taskMrr;
+  const productMrr = state.productLines.reduce((sum, line) => sum + line.mrr, 0);
+  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0) + state.taskMrr + productMrr;
   const weeklyRevenue = state.mrr / 4.33;
 
   const weeklyChurn = churnRate(state, alignment) * (state.pivotWeeksRemaining > 0 ? 1.6 : 1);
@@ -71,13 +67,15 @@ export function advanceWeek(input: GameState): GameState {
     state.churnedCustomers += churnCount;
     notes.push(`${churnCount} customer${churnCount === 1 ? "" : "s"} left. The weakest-fit accounts went first.`);
   }
-  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0) + state.taskMrr;
+  state.mrr = state.customers.reduce((sum, customer) => sum + customer.mrr, 0) + state.taskMrr + productMrr;
 
   const burn = weeklyBurn(state);
   const financingDrag = state.outsideCapital > 0 && state.mrr > 0 ? Math.min(state.mrr / 13, weeklyRevenue * .16) : 0;
   const emergencyInterest = state.emergencyLoanBalance * EMERGENCY_LOAN_WEEKLY_RATE;
   const cashDelta = weeklyRevenue - burn - financingDrag - emergencyInterest;
   state.cash += cashDelta;
+  const dividends = processPortfolio(state);
+  if (dividends > 0) notes.push(`The holding company paid a $${Math.round(dividends).toLocaleString()} dividend into this company.`);
 
   state.evidenceScore = evidenceScoreFor(state);
   state.conviction = Math.max(0, Math.min(100, state.conviction - BALANCE.convictionDecayWeekly + (newCustomers > 0 ? Math.min(6, newCustomers) : 0)));
@@ -100,7 +98,7 @@ export function advanceWeek(input: GameState): GameState {
 
   const count = state.people.length + 1;
   state.headcountHistory.push(count);
-  state.workspace = workspaceFor(count, state.workspaceCap);
+  if (state.workspaceCap && state.workspace !== state.workspaceCap) state.workspace = state.workspaceCap;
   const events = evaluateEvents(state);
   state.pendingEvents.push(...events);
   state.firedEvents.push(...events.map((event) => event.id));
@@ -125,6 +123,7 @@ export function advanceWeek(input: GameState): GameState {
   if (state.totalCustomersWon > 0 && !state.unlockedApps.includes("stats")) state.unlockedApps.push("stats");
   addWeeklyTask(state);
   processFundraisingWeek(state);
+  finishOfficeMove(state);
   const crisisResult = processCrisis(state);
   if (crisisResult !== state) return crisisResult;
   state.week += 1;

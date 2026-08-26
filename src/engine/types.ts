@@ -48,8 +48,11 @@ export type MeetingOutcome = { kind: "pass"; reason: PassReason; soft: boolean }
 export interface Investor { id: string; name: string; firm: string; kind: InvestorKind; checkMin: number; checkMax: number; leadsRounds: boolean; temperament: "fast" | "thorough" | "tyreKicker" | "cutthroat"; demandsBoardSeat: boolean; thesisSegments: SegmentId[]; minMonthlyRevenue: number; maxTechDebt: number; portfolio: string[]; discovered: boolean; researched: boolean; relationship: number; lastContactWeek: number | null; passes: { week: number; reason: PassReason }[]; }
 export interface Round { id: string; stage: InvestorKind; targetAmount: number; askPreMoney: number; openedWeek: number; leadInvestorId: string | null; commitments: { investorId: string; amount: number; week: number }[]; meetings: { investorId: string; week: number; outcome: MeetingOutcome }[]; poolTopUp: number; status: "open" | "closed" | "cold" | "abandoned"; }
 export interface CapEntry { id: string; holder: string; kind: "founder" | "cofounder" | "optionPool" | "investor"; shares: number; roundId: string | null; sinceWeek: number; }
+export interface OfficeMove { target: Workspace; weeksRemaining: number; deposit: number; }
+export interface ProductLine { id: string; name: string; price: number; selectedFeature: FeatureId; shippedFeatures: FeatureId[]; customers: number; churned: number; mrr: number; startedWeek: number; }
+export interface ManagedCompany { id: string; companyNumber: number; name: string; ceoName: string; founderOwnership: number; mrr: number; cash: number; customers: number; valuation: number; workspace: Workspace; people: Person[]; dividendsPaid: number; startedWeek: number; appointedWeek: number; }
 export interface GameState {
-  version: 7; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
+  version: 8; seed: number; rngState: number; week: number; day: number; cash: number; focus: number; nextFocusBonus: number;
   truth: MarketTruth; beliefs: Beliefs; evidence: EvidenceCard[]; conviction: number; evidenceScore: number; overclaim: number; quietCorrectWeeks: number;
   pipeline: number; customers: Customer[]; churnPressure: number; churnedCustomers: number; closedDeals: number; mrr: number; previousMrr: number; price: number; reputation: number;
   shippedFeatures: FeatureId[]; selectedFeature: FeatureId; techDebt: number; onboardingQuality: number; people: Person[]; formerPeople: string[]; workspace: Workspace; headcountHistory: number[];
@@ -60,6 +63,7 @@ export interface GameState {
   crisis: CrisisState; emergencyLoanBalance: number; workspaceCap: Workspace | null; quarterReports: QuarterReport[]; officeBeat: number;
   tasks: Task[]; completedTasks: string[]; taskSerial: number; taskMrr: number; findings: Finding[]; workloads: Record<string, Workload>; unlockedApps: PhoneAppId[];
   investors: Investor[]; rounds: Round[]; capTable: CapEntry[]; activeRoundId: string | null;
+  officeMove: OfficeMove | null; productLines: ProductLine[]; productSerial: number; portfolio: ManagedCompany[]; holdingDividends: number;
 }
 
 export type ActionId = "interview" | "interviewSprint" | "landingPage" | "churnAutopsy" | "winLoss" | "teardown" | "ship" | "harden" | "onboarding" | "payDebt" | "spike" | "coldOutreach" | "salesCall" | "communityLaunch" | "content" | "paidAds" | "enterpriseDeal" | "postRole" | "interviewCandidate" | "offer" | "oneOnOne" | "raise" | "letGo" | "bridge" | "revenueFinance" | "cutBurn" | "weekend" | "pivot" | "rewritePitch" | "allNighter";

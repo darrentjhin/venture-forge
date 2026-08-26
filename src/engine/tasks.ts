@@ -111,7 +111,8 @@ export function processTasks(state: GameState): string[] {
       const contextPenalty = load > 1 ? .85 : 1;
       const moraleFactor = .45 + person.morale / 180;
       const focusFactor = state.pivotWeeksRemaining > 0 ? .5 : 1;
-      output += skillValue(person, task.skill) * moraleFactor * focusFactor * contextPenalty / load;
+      const moveFactor = state.officeMove ? .5 : 1;
+      output += skillValue(person, task.skill) * moraleFactor * focusFactor * moveFactor * contextPenalty / load;
     }
     task.progress = Math.min(task.effort, task.progress + output);
     if (task.progress >= task.effort) completed.push(task);

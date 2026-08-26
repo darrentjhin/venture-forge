@@ -25,6 +25,8 @@ export function App() {
   const musicEnabled = useGame((store) => store.musicEnabled);
   const openPanel = useGame((store) => store.openPanel);
   const toggleHelp = useGame((store) => store.toggleHelp);
+  const visitedCompanyId = useGame((store) => store.visitedCompanyId);
+  const visitCompany = useGame((store) => store.visitCompany);
 
   const mood = game ? selectRunwayMood(game) : 0;
   useEffect(() => { setDread(screen === "game" ? mood : 0, muted); }, [mood, muted, screen]);
@@ -43,9 +45,12 @@ export function App() {
   }, [screen, openPanel, toggleHelp]);
 
   if (screen === "title" || !game) return <Title/>;
+  const visited = game.portfolio.find((company) => company.id === visitedCompanyId) ?? null;
+  const roomState = visited ? { ...game, cash: visited.cash, mrr: visited.mrr, customers: game.customers.slice(0, visited.customers), people: visited.people, workspace: visited.workspace, companyNumber: visited.companyNumber } : game;
   return <div className="game-shell">
     <Hud game={game}/>
-    <Room state={game} onOpen={openPanel}/>
+    <Room state={roomState} onOpen={visited ? () => undefined : openPanel} readOnly={Boolean(visited)}/>
+    {visited && <div className="visit-banner"><span>Visiting {visited.name} · run by {visited.ceoName}</span><button onClick={() => visitCompany(null)}>Return to Company {game.companyNumber}</button></div>}
     <AnimatePresence>{panel && <Panel key={panel} id={panel} game={game}/>}</AnimatePresence>
     <AnimatePresence>{reportOpen && <WeekReport key="report" game={game}/>}</AnimatePresence>
     <AnimatePresence>{!reportOpen && game.crisis.choiceRequired && <CrisisCard key="crisis" game={game}/>}</AnimatePresence>

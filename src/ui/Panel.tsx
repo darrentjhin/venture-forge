@@ -8,8 +8,9 @@ import { FEATURES, FEATURE_LABELS, type FeatureId } from "../data/features";
 import { SEGMENTS, SEGMENT_LABELS, type SegmentId } from "../data/segments";
 import { selectBurn, selectRunway, selectRunwayDisplay, selectWeeklyRevenue, selectWorkspaceCost } from "../engine/selectors";
 import { alignmentFor } from "../engine/beliefs";
-import type { BeliefKey, EvidenceCard, GameState, InvestorKind, PanelId, Person } from "../engine/types";
+import type { BeliefKey, EvidenceCard, GameState, InvestorKind, PanelId, Person, Workspace } from "../engine/types";
 import { canRepitchInvestor, investorStageLabel, investorThesis, latestTermSheet, lowestOpenBar, ownershipPercent } from "../engine/fundraising";
+import { officeMoveCost, WORKSPACE_ORDER } from "../engine/growth";
 import { useGame } from "../store/useGame";
 import { ActionList } from "./ActionList";
 import { NumberValue } from "./Number";
@@ -268,6 +269,9 @@ function InboxPanel({ game }: { game: GameState }) {
 /* ── Roadmap ─────────────────────────────────────────────── */
 function RoadmapPanel({ game }: { game: GameState }) {
   const setFeature = useGame((store) => store.setFeature);
+  const startProductLine = useGame((store) => store.startProductLine);
+  const selectProductFeature = useGame((store) => store.selectProductFeature);
+  const shipProductFeature = useGame((store) => store.shipProductFeature);
   const muted = useGame((store) => store.muted);
   const demandCount = (feature: FeatureId) => game.customers.filter((customer) => customer.demands.includes(feature)).length;
 
@@ -308,6 +312,16 @@ function RoadmapPanel({ game }: { game: GameState }) {
     </div>
 
     <div className="section">
+      <span className="eyebrow">Product lines · {game.productLines.length + 1}</span>
+      <div className="product-line main"><strong>Main product</strong><span>{game.customers.length} customers · ${Math.round(game.mrr - game.productLines.reduce((sum, line) => sum + line.mrr, 0)).toLocaleString()} monthly</span></div>
+      {game.productLines.map((line) => <article className="product-line" key={line.id}>
+        <header><div><strong>{line.name}</strong><span>{line.customers} customers · ${line.mrr.toLocaleString()} monthly · {line.churned} left</span></div><b>{line.shippedFeatures.length} shipped</b></header>
+        <div><select value={line.selectedFeature} onChange={(event) => selectProductFeature(line.id, event.target.value as FeatureId)}>{FEATURES.map((feature) => <option key={feature} value={feature} disabled={line.shippedFeatures.includes(feature)}>{FEATURE_LABELS[feature]}{line.shippedFeatures.includes(feature) ? " · shipped" : ""}</option>)}</select><button onClick={() => shipProductFeature(line.id)} disabled={line.shippedFeatures.includes(line.selectedFeature) || game.focus < 2 || game.cash < 500}>Ship · 2 Focus · $500</button></div>
+      </article>)}
+      <button className="btn btn-ghost" style={{ width: "100%", marginTop: 8 }} onClick={startProductLine} disabled={game.productLines.length >= 3 || game.focus < 2 || game.cash < 2_000}>Start another product · 2 Focus · $2,000</button>
+    </div>
+
+    <div className="section">
       <span className="eyebrow">Company history · {game.companyHistory.length}</span>
       {game.companyHistory.length === 0 ? <div className="empty"><strong>The wall is blank.</strong><p>Firsts, quarter closes, and hard weeks will stay here permanently.</p></div> : <div className="evidence">
         {[...game.companyHistory].reverse().map((entry) => <div className="ev-card" key={`${entry.id}-${entry.week}`}>
@@ -333,6 +347,8 @@ function TeamPanel({ game }: { game: GameState }) {
   const queueAction = useGame((store) => store.queueAction);
   const muted = useGame((store) => store.muted);
   const payroll = game.people.reduce((sum, person) => sum + person.salaryWeekly, 0);
+  const startOfficeMove = useGame((store) => store.startOfficeMove);
+  const currentTier = WORKSPACE_ORDER.indexOf(game.workspace);
 
   return <>
     <div className="section">
@@ -375,6 +391,15 @@ function TeamPanel({ game }: { game: GameState }) {
       <span className="eyebrow">Hiring and management</span>
       <ActionList game={game} group="team"/>
     </div>
+
+    <div className="section">
+      <span className="eyebrow">Move the company</span>
+      {game.officeMove ? <div className="move-active"><strong>Moving to the {game.officeMove.target}</strong><span>Output is halved this week while the room changes.</span></div> : <div className="move-options">
+        {WORKSPACE_ORDER.slice(currentTier + 1).map((workspace) => { const cost = officeMoveCost(workspace); return <button key={workspace} onClick={() => startOfficeMove(workspace as Workspace)} disabled={game.focus < 1 || game.cash < cost}><strong>{workspace}</strong><span>${BALANCE.workspaceWeekly[workspace].toLocaleString()}/week · ${cost.toLocaleString()} deposit</span></button>; })}
+        {currentTier === WORKSPACE_ORDER.length - 1 && <p>You are already in the largest office.</p>}
+      </div>}
+      <p className="raise-help">A move takes one week and cuts all delegated output in half while boxes are open.</p>
+    </div>
   </>;
 }
 
@@ -388,6 +413,8 @@ function CapitalPanel({ game }: { game: GameState }) {
   const accept = useGame((store) => store.acceptTermSheet);
   const walk = useGame((store) => store.walkFromTermSheet);
   const closeRound = useGame((store) => store.closeRound);
+  const appointCeo = useGame((store) => store.appointCeo);
+  const visitCompany = useGame((store) => store.visitCompany);
   const [stage, setStage] = useState<InvestorKind>("angel");
   const active = game.rounds.find((round) => round.id === game.activeRoundId) ?? null;
   const founderPercent = ownershipPercent(game.capTable, "founder");
@@ -458,6 +485,19 @@ function CapitalPanel({ game }: { game: GameState }) {
     <div className="section">
       <span className="eyebrow">Desperate options</span>
       <ActionList game={game} group="capital"/>
+    </div>
+
+    <div className="section">
+      <span className="eyebrow">Holding company · {game.portfolio.length + 1} active</span>
+      {game.portfolio.map((company) => <article className="portfolio-company" key={company.id}><div><strong>{company.name}</strong><span>{company.ceoName}, CEO · {(company.founderOwnership * 100).toFixed(1)}% owned</span><p>${Math.round(company.mrr).toLocaleString()} monthly · ${Math.round(company.valuation).toLocaleString()} value · ${Math.round(company.dividendsPaid).toLocaleString()} dividends paid</p></div><button onClick={() => visitCompany(company.id)}>Visit office</button></article>)}
+      <div className="portfolio-company current"><div><strong>Company {game.companyNumber} · you are CEO</strong><span>${Math.round(game.mrr).toLocaleString()} monthly · {game.people.length + 1} people</span></div></div>
+      {game.portfolio.length > 0 && <p className="raise-next"><b>Holding dividends:</b> ${Math.round(game.holdingDividends).toLocaleString()} paid into the companies you are building.</p>}
+    </div>
+
+    <div className="section">
+      <span className="eyebrow">Hand over this company</span>
+      <p className="raise-help">Appoint a CEO and this office keeps growing at 60% speed. Your ownership pays dividends while you start the next company from a small room.</p>
+      <div className="ceo-options">{game.people.map((person) => <button key={person.id} onClick={() => appointCeo(person.id)}><strong>{person.name}</strong><span>{person.role} · appoint CEO</span></button>)}<button onClick={() => appointCeo(null)} disabled={game.cash < 20_000}><strong>Morgan Vale</strong><span>Outside CEO · $20,000 search</span></button></div>
     </div>
   </>;
 }

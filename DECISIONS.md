@@ -23,7 +23,7 @@
 ## Balance tuning
 
 - Bridge notes no longer pretend to be equity in `outsideCapital`, but a bridge-financed company does not qualify for the “built to last” benchmark. A queued bridge can execute only once per week, closing an old duplicate-action loophole while keeping the intended $50,000 lifeline.
-- The 2,000-run suite currently produces a 22.35% overall win rate. Research-heavy play wins 50.60% of runs and greedy-revenue play wins 0%, a 50.60-point research advantage.
+- The 2,000-run suite currently produces a 17.60% overall win rate. Research-heavy play wins 52.85% of runs and greedy-revenue play wins 0%, a 52.85-point research advantage.
 - Normal churn only damages reputation when it materially outruns acquisition. Penalizing every individual churn made successful aligned companies collapse at scale even while net retention was healthy.
 
 ## Interface
@@ -36,3 +36,11 @@
 - The six room objects are painted into the pixel canvas with a parallel screen-reader action list. Clicking one now sends the founder to its nearest open floor tile before the panel appears; number keys remain the accessible shortcut.
 - The founder is the only player-controlled room agent. Cosmetic coworker movement cannot overwrite the founder's destination.
 - Coffee always costs $4. The first two cups in a founder day restore one Focus each; later cups deliberately produce only the jittery visual consequence.
+
+## Growth layer
+
+- Office growth is now opt-in. Each larger room has a strictly higher weekly cost, requires a four-week-rent deposit (with a $1,000 minimum), and takes one week to move into. Delegated output is halved during that move week.
+- Additional products carry separate feature roadmaps, prices, customers, churn totals, and MRR. Their revenue rolls into the company total, but their customer behavior remains visible and traceable by product line.
+- CEO handoff snapshots the operating company, team, room, cap-table ownership, and economics into a managed portfolio company. The next company starts small while founder reputation and investor relationships persist.
+- Managed companies compound at 1.2% per week, representing 60% of a 2% founder-led baseline. Profitable managed companies send one quarter of the founder-owned profit back through the holding company as a dividend.
+- The operating-economy benchmark keeps its 2,000-run sample but strips the unused 40-person investor roster and checks core economy values every tick, then deeply checks the final state. This keeps the benchmark comprehensive without spending most of its time cloning static fundraising data.
