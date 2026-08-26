@@ -135,6 +135,24 @@ p { margin: 0; }
 .title-card li b { font-family: var(--mono); font-size: 10px; color: var(--amber-deep); letter-spacing: .08em; padding-top: 2px; }
 .title-foot { position: absolute; bottom: 26px; left: 0; right: 0; text-align: center; font-family: var(--mono); font-size: 9px; letter-spacing: .12em; color: #5e5a54; }
 
+/* Animated office home */
+.home-shell { position: relative; min-height: 100%; overflow: hidden; display: grid; place-items: center; background: #17140f; color: var(--paper-2); }
+.home-office { position: absolute; inset: 0; overflow: hidden; }
+.home-office::after { content: ""; position: absolute; inset: 0; background: rgba(21,16,10,.18); }
+.home-golden { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(18,14,10,.78) 0%, rgba(18,14,10,.52) 43%, rgba(18,14,10,.18) 72%, rgba(240,157,65,.14) 100%), radial-gradient(circle at 85% 20%, rgba(255,190,93,.28), transparent 38%); }
+.home-content { position: relative; z-index: 2; width: min(610px, calc(100% - 36px)); margin-right: min(36vw, 450px); display: grid; gap: 18px; }
+.home-logo { display: flex; gap: 16px; align-items: center; text-shadow: 4px 4px 0 rgba(0,0,0,.45); }
+.home-logo > span { width: 66px; height: 66px; display: grid; place-items: center; background: var(--amber); color: var(--ink); border: 4px solid #17140f; box-shadow: 6px 6px 0 rgba(0,0,0,.38); font: 900 35px var(--mono); transform: rotate(-4deg); }
+.home-logo small { display: block; margin-bottom: 4px; color: var(--amber); font: 800 10px var(--mono); letter-spacing: .2em; }
+.home-logo h1 { color: #fff8e8; font: 900 clamp(42px, 6vw, 72px)/.76 var(--mono); letter-spacing: -.09em; }
+.home-tagline { max-width: 500px; color: rgba(255,248,232,.76); font-size: 14px; line-height: 1.55; text-shadow: 2px 2px 2px rgba(0,0,0,.6); }
+.save-card { width: 100%; display: grid; grid-template-columns: 42px 1fr auto; gap: 13px; align-items: center; padding: 15px 17px; text-align: left; border: 2px solid #15130f; border-radius: 5px; background: rgba(249,242,227,.95); color: var(--ink); box-shadow: 7px 7px 0 rgba(0,0,0,.34); transition: transform .14s, box-shadow .14s; }
+.save-card:hover { transform: translateY(-2px); box-shadow: 9px 10px 0 rgba(0,0,0,.38); }.save-play { width: 38px; height: 38px; display: grid; place-items: center; background: var(--amber); border: 2px solid var(--ink); font-size: 14px; }.save-card small,.save-card strong,.save-card p { display: block; }.save-card small { color: var(--amber-deep); font: 800 8.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; }.save-card strong { margin-top: 2px; font-size: 17px; }.save-card p { margin-top: 2px; color: var(--ink-soft); font: 10px var(--mono); }.save-card > b { font-size: 11px; white-space: nowrap; }
+.home-actions { display: flex; gap: 10px; }.home-actions button { padding: 8px 12px; border: 1px solid rgba(255,248,232,.3); border-radius: 3px; color: rgba(255,248,232,.78); background: rgba(17,14,11,.45); font: 700 10px var(--mono); }.home-actions button:hover { color: #fff8e8; border-color: var(--amber); }
+.home-drawer { padding: 14px; border: 1px solid rgba(255,248,232,.24); border-radius: 4px; background: rgba(18,15,12,.88); backdrop-filter: blur(7px); }.home-drawer label { display: block; margin-bottom: 8px; color: #fff8e8; font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; }.home-drawer label span { color: rgba(255,248,232,.48); font-weight: 400; }.home-drawer > div { display: flex; gap: 7px; }.home-drawer input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #615847; border-radius: 3px; background: #27231d; color: #fff8e8; font: 12px var(--mono); }.home-drawer > div button { padding: 9px 14px; border-radius: 3px; background: var(--amber); color: var(--ink); font-weight: 800; }.daily-run { margin-top: 9px; color: var(--amber); font: 9.5px var(--mono); }
+.settings-drawer { display: grid; gap: 7px; }.settings-drawer > button { display: flex; justify-content: space-between; padding: 9px 11px; border: 1px solid #514a3d; border-radius: 3px; color: #fff8e8; }.settings-drawer > button b { color: var(--amber); }.settings-drawer p { color: rgba(255,248,232,.5); font-size: 10px; }
+.home-foot { position: absolute; z-index: 2; left: 18px; bottom: 14px; color: rgba(255,248,232,.42); font: 8.5px var(--mono); letter-spacing: .13em; }
+
 /* ============================================================
    GAME SHELL + HUD
    ============================================================ */
@@ -196,12 +214,8 @@ p { margin: 0; }
 .room-wrap.mood-2, .room-wrap.mood-3 { background: #241f1b; }
 
 .office-canvas {
-  /* Absolute inset gives the element a definite box; without it the canvas
-     keeps its intrinsic aspect ratio and overflows the room. */
-  position: absolute; inset: 0;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   display: block;
-  width: 100%; height: 100%;
-  object-fit: contain;
   /* Nearest-neighbour upscaling is what makes this read as pixel art. */
   image-rendering: pixelated;
   image-rendering: crisp-edges;
@@ -541,6 +555,8 @@ p { margin: 0; }
   .title-vignette { display: none; }
   .panel { left: 14px; width: auto; }
   .report-grid { grid-template-columns: repeat(2, 1fr); }
+  .home-content { margin-right: 0; }
+  .home-golden { background: rgba(18,14,10,.64); }
 }
 @media (max-width: 620px) {
   :root { --hud-h: 56px; }
@@ -551,6 +567,9 @@ p { margin: 0; }
   .panel { top: calc(var(--hud-h) + 8px); left: 8px; right: 8px; bottom: 8px; }
   .panel-body { padding: 16px 16px 22px; }
   .pm-shell { padding: 34px 18px; }
+  .home-logo > span { width: 52px; height: 52px; font-size: 28px; }
+  .save-card { grid-template-columns: 38px 1fr; }.save-card > b { display: none; }
+  .home-foot { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

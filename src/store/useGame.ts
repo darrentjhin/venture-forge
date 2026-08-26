@@ -19,6 +19,7 @@ interface GameStore {
   reportOpen: boolean;
   helpOpen: boolean;
   muted: boolean;
+  musicEnabled: boolean;
   start: (seed: number) => void;
   continueRun: () => void;
   abandon: () => void;
@@ -46,10 +47,11 @@ interface GameStore {
   closeRound: () => void;
   toggleHelp: () => void;
   toggleMuted: () => void;
+  toggleMusic: () => void;
 }
 
 export const useGame = create<GameStore>()(persist((set) => ({
-  game: null, screen: "title", panel: null, reportOpen: false, helpOpen: false, muted: false,
+  game: null, screen: "title", panel: null, reportOpen: false, helpOpen: false, muted: false, musicEnabled: false,
   start: (seed) => set({ game: newRun(seed), screen: "game", panel: null, reportOpen: false }),
   continueRun: () => set({ screen: "game" }),
   abandon: () => set({ screen: "title", panel: null, reportOpen: false }),
@@ -91,12 +93,13 @@ export const useGame = create<GameStore>()(persist((set) => ({
   closeRound: () => set((store) => store.game ? { game: closeEngineRound(store.game) } : {}),
   toggleHelp: () => set((store) => ({ helpOpen: !store.helpOpen })),
   toggleMuted: () => set((store) => ({ muted: !store.muted })),
+  toggleMusic: () => set((store) => ({ musicEnabled: !store.musicEnabled })),
 }), {
   name: "venture-forge-v3",
   version: 7,
   migrate: (persisted) => {
-    const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean } : {};
+    const old = persisted && typeof persisted === "object" ? persisted as { game?: unknown; muted?: boolean; musicEnabled?: boolean } : {};
     return { ...old, game: migrateGameState(old.game) };
   },
-  partialize: (store) => ({ game: store.game?.version === 7 ? store.game : null, muted: store.muted }),
+  partialize: (store) => ({ game: store.game?.version === 7 ? store.game : null, muted: store.muted, musicEnabled: store.musicEnabled }),
 }));

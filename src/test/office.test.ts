@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { findPath, hasArrived, isWalking, sendAgentTo, stepAgent, type Agent } from "../scene/room/agents";
 import { blockedTiles, planFor } from "../scene/room/plans";
 import { SEATS_REQUIRED } from "../scene/room/plans";
+import { integerScaleFor } from "../scene/room/geometry";
 
 function agentAt(x: number, y: number, seat: { x: number; y: number }): Agent {
   return {
@@ -11,6 +12,11 @@ function agentAt(x: number, y: number, seat: { x: number; y: number }): Agent {
 }
 
 describe("office rooms", () => {
+  it("uses whole-number canvas scaling and never shrinks a source pixel", () => {
+    expect(integerScaleFor(1280, 720, 448, 256)).toBe(2);
+    expect(integerScaleFor(390, 600, 832, 400)).toBe(1);
+    expect(Number.isInteger(integerScaleFor(1537, 811, 448, 256))).toBe(true);
+  });
   it("gives every stage enough seats for the headcount that reaches it", () => {
     for (const [stage, needed] of Object.entries(SEATS_REQUIRED)) {
       const plan = planFor(stage as keyof typeof SEATS_REQUIRED);

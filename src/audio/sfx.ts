@@ -3,6 +3,8 @@ let context: AudioContext | null = null;
 let master: GainNode | null = null;
 let dreadOscillator: OscillatorNode | null = null;
 let dreadGain: GainNode | null = null;
+let musicGain: GainNode | null = null;
+let musicOscillators: OscillatorNode[] = [];
 
 function audio(): { context: AudioContext; master: GainNode } | null {
   if (typeof window === "undefined") return null;
@@ -37,4 +39,28 @@ export function setDread(level: number, muted: boolean) {
   const graph = audio(); if (!graph) return;
   if (!dreadOscillator || !dreadGain) { dreadOscillator = graph.context.createOscillator(); dreadGain = graph.context.createGain(); dreadOscillator.type = "sine"; dreadOscillator.frequency.value = 55; dreadGain.gain.value = 0; dreadOscillator.connect(dreadGain); dreadGain.connect(graph.master); dreadOscillator.start(); }
   dreadGain.gain.cancelScheduledValues(graph.context.currentTime); dreadGain.gain.linearRampToValueAtTime(muted ? 0 : Math.min(.04, level * .01), graph.context.currentTime + .5);
+}
+
+export function setMusic(enabled: boolean, muted: boolean) {
+  if (!enabled) {
+    if (context && musicGain) musicGain.gain.linearRampToValueAtTime(0, context.currentTime + .4);
+    return;
+  }
+  const graph = audio(); if (!graph) return;
+  if (!musicGain) {
+    musicGain = graph.context.createGain(); musicGain.gain.value = 0; musicGain.connect(graph.master);
+    musicOscillators = [110, 165, 220].map((frequency, index) => {
+      const oscillator = graph.context.createOscillator(); const voice = graph.context.createGain();
+      oscillator.type = index === 2 ? "triangle" : "sine"; oscillator.frequency.value = frequency; voice.gain.value = index === 2 ? .12 : .2;
+      oscillator.connect(voice); voice.connect(musicGain as GainNode); oscillator.start(); return oscillator;
+    });
+  }
+  musicGain.gain.cancelScheduledValues(graph.context.currentTime);
+  musicGain.gain.linearRampToValueAtTime(muted ? 0 : .028, graph.context.currentTime + .8);
+}
+
+/** Updates an already-started music graph without violating autoplay rules. */
+export function syncMusic(enabled: boolean, muted: boolean) {
+  if (!context) return;
+  setMusic(enabled, muted);
 }

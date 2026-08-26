@@ -1,35 +1,39 @@
 /**
- * Saturated pixel palette. Clarity here comes from three things: a hard
- * near-black outline on every sprite, high value contrast between a prop and
- * the floor it stands on, and warm wood against cool teal walls.
+ * The 32-colour source palette for the office. Props reuse these colours
+ * instead of inventing slightly different greys, woods and teals. Lighting is
+ * a separate overlay, so a late-night office stays saturated and readable.
  */
+export const PIXEL_COLORS = [
+  "#14161f", "#232839", "#3d7d96", "#31687e", "#a6f0ea", "#336b84", "#5fa2ba", "#c07c46",
+  "#b06f3e", "#8d5730", "#6b4224", "#f6cba4", "#e8b184", "#cf9165", "#ac6f46", "#8a5432",
+  "#653c22", "#f0bd93", "#bd7f52", "#2b1d16", "#120f0e", "#6b3f22", "#b5762f", "#e0c07a",
+  "#4a3a30", "#2ec4d6", "#ff8c42", "#a45fd6", "#4fc46a", "#e05a5a", "#4a7fd6", "#2c3550",
+] as const;
 
-export const INK = "#14161f";
-export const INK_SOFT = "#232839";
+export const INK = PIXEL_COLORS[0];
+export const INK_SOFT = PIXEL_COLORS[1];
 
 export interface Palette {
   wall: string; wallDark: string; wallTrim: string; wainscot: string; wainscotEdge: string;
   floorA: string; floorB: string; floorLine: string; floorEdge: string;
-  glow: number;   // 0..1 warm lamp wash
-  dim: number;    // 0..1 cool darkness over everything
+  glow: number; dim: number;
 }
 
-/** Index by runway mood: 0 is a bright morning, 5 is 2am and nearly broke. */
-const PALETTES: Palette[] = [
-  { wall: "#3d7d96", wallDark: "#31687e", wallTrim: "#a6f0ea", wainscot: "#336b84", wainscotEdge: "#5fa2ba", floorA: "#c07c46", floorB: "#b06f3e", floorLine: "#8d5730", floorEdge: "#6b4224", glow: 0, dim: 0 },
-  { wall: "#3a7891", wallDark: "#2e6379", wallTrim: "#9ce8e4", wainscot: "#30667e", wainscotEdge: "#5b9db5", floorA: "#bc7843", floorB: "#ac6b3b", floorLine: "#8a542e", floorEdge: "#684022", glow: 0.01, dim: 0.01 },
-  { wall: "#37728a", wallDark: "#2b5d72", wallTrim: "#90dedb", wainscot: "#2d6076", wainscotEdge: "#5697ae", floorA: "#b67440", floorB: "#a76739", floorLine: "#85512c", floorEdge: "#653e21", glow: 0.02, dim: 0.02 },
-  { wall: "#336a81", wallDark: "#28566a", wallTrim: "#82d0cf", wainscot: "#2a596d", wainscotEdge: "#4f8ea5", floorA: "#ae6e3c", floorB: "#9f6236", floorLine: "#7e4d2a", floorEdge: "#5f3a1f", glow: 0.03, dim: 0.035 },
-  { wall: "#2d5f75", wallDark: "#234c5f", wallTrim: "#6fbcbd", wainscot: "#255063", wainscotEdge: "#457f96", floorA: "#a36638", floorB: "#955c33", floorLine: "#764827", floorEdge: "#59361d", glow: 0.05, dim: 0.06 },
-  { wall: "#28546a", wallDark: "#1f4456", wallTrim: "#5da8ab", wainscot: "#20475a", wainscotEdge: "#3c7288", floorA: "#975f34", floorB: "#8a552f", floorLine: "#6d4324", floorEdge: "#52311b", glow: 0.07, dim: 0.09 },
-];
+const BASE = {
+  wall: PIXEL_COLORS[2], wallDark: PIXEL_COLORS[3], wallTrim: PIXEL_COLORS[4], wainscot: PIXEL_COLORS[5], wainscotEdge: PIXEL_COLORS[6],
+  floorA: PIXEL_COLORS[7], floorB: PIXEL_COLORS[8], floorLine: PIXEL_COLORS[9], floorEdge: PIXEL_COLORS[10],
+};
+
+const LIGHTING = [
+  { glow: 0, dim: 0 }, { glow: .01, dim: .01 }, { glow: .02, dim: .02 },
+  { glow: .03, dim: .035 }, { glow: .05, dim: .06 }, { glow: .07, dim: .09 },
+] as const;
 
 export function paletteFor(mood: number): Palette {
-  return PALETTES[Math.max(0, Math.min(5, Math.round(mood)))];
+  return { ...BASE, ...LIGHTING[Math.max(0, Math.min(5, Math.round(mood)))] };
 }
 
-/** Character colours, chosen to stay distinct against wood and teal. */
-export const SKINS = ["#f6cba4", "#e8b184", "#cf9165", "#ac6f46", "#8a5432", "#653c22", "#f0bd93", "#bd7f52"];
-export const HAIR = ["#2b1d16", "#120f0e", "#6b3f22", "#b5762f", "#e0c07a", "#4a3a30", "#8f2f28", "#1d2530", "#5c4a9c", "#2f6b4a"];
-export const SHIRTS = ["#2ec4d6", "#ff8c42", "#a45fd6", "#4fc46a", "#e05a5a", "#4a7fd6", "#e0b23c", "#d64f9c"];
-export const PANTS = ["#2c3550", "#3a3346", "#243a4a", "#4a3a2c"];
+export const SKINS = PIXEL_COLORS.slice(11, 19);
+export const HAIR = [PIXEL_COLORS[19], PIXEL_COLORS[20], PIXEL_COLORS[21], PIXEL_COLORS[22], PIXEL_COLORS[23], PIXEL_COLORS[24], PIXEL_COLORS[29], PIXEL_COLORS[1], PIXEL_COLORS[27], PIXEL_COLORS[5]];
+export const SHIRTS = [PIXEL_COLORS[25], PIXEL_COLORS[26], PIXEL_COLORS[27], PIXEL_COLORS[28], PIXEL_COLORS[29], PIXEL_COLORS[30], PIXEL_COLORS[23], PIXEL_COLORS[18]];
+export const PANTS = [PIXEL_COLORS[31], PIXEL_COLORS[1], PIXEL_COLORS[3], PIXEL_COLORS[24]];

@@ -28,6 +28,10 @@
 
 ## Interface
 
+- The canvas zoom is the largest whole number that fits the room pane, never a fractional stretch. On panes smaller than the source room it stays at 1× and the room is clipped rather than blurred.
+- Room shell and furniture rows are cached to offscreen canvases per room/week. The animation loop now redraws people, screens, coffee steam, and interaction highlights without repainting every static prop.
+- The 32-colour pixel source palette stays constant across runway moods; mood changes only the warm/cool lighting overlay. This keeps late-night sprites saturated and legible.
+- Home is the live office at golden hour. Music is explicitly opt-in and its audio graph is created only from the settings click, preserving browser autoplay rules.
 - The title screen accepts a shareable numeric seed and offers a deterministic daily seed. Saves are device-local by design, matching the static-site constraint.
 - The six room objects are painted into the pixel canvas with a parallel screen-reader action list. Clicking one now sends the founder to its nearest open floor tile before the panel appears; number keys remain the accessible shortcut.
 - The founder is the only player-controlled room agent. Cosmetic coworker movement cannot overwrite the founder's destination.

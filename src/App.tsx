@@ -1,6 +1,6 @@
 import { AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
-import { setDread } from "./audio/sfx";
+import { setDread, syncMusic } from "./audio/sfx";
 import { selectRunwayMood } from "./engine/selectors";
 import { Room } from "./scene/Room";
 import { useGame } from "./store/useGame";
@@ -22,11 +22,13 @@ export function App() {
   const reportOpen = useGame((store) => store.reportOpen);
   const helpOpen = useGame((store) => store.helpOpen);
   const muted = useGame((store) => store.muted);
+  const musicEnabled = useGame((store) => store.musicEnabled);
   const openPanel = useGame((store) => store.openPanel);
   const toggleHelp = useGame((store) => store.toggleHelp);
 
   const mood = game ? selectRunwayMood(game) : 0;
   useEffect(() => { setDread(screen === "game" ? mood : 0, muted); }, [mood, muted, screen]);
+  useEffect(() => { syncMusic(musicEnabled, muted); }, [musicEnabled, muted]);
 
   useEffect(() => {
     if (screen !== "game") return;

@@ -357,6 +357,7 @@ export interface CharacterSpec {
   skin: number; hair: number; shirt: number; pants: number;
   glasses: boolean; hairStyle: number;
   facing: Facing; walking: boolean; slumped: boolean; phase: number;
+  motion?: string;
 }
 
 /**
@@ -366,7 +367,8 @@ export interface CharacterSpec {
 export function drawCharacter(ctx: CanvasRenderingContext2D, x: number, y: number, c: CharacterSpec, frame: number) {
   // Four-frame cycle at ~6fps, paced to the walk speed above.
   const step = c.walking ? Math.floor((frame + c.phase) / 10) % 4 : 0;
-  const bob = c.walking && (step === 1 || step === 3) ? -1 : 0;
+  const breathe = !c.walking && !c.slumped && Math.floor((frame + c.phase) / 52) % 2 === 1 ? -1 : 0;
+  const bob = c.walking && (step === 1 || step === 3) ? -1 : breathe;
   const droop = c.slumped ? 2 : 0;
   const skin = SKINS[c.skin % SKINS.length];
   const hair = HAIR[c.hair % HAIR.length];
@@ -405,6 +407,11 @@ export function drawCharacter(ctx: CanvasRenderingContext2D, x: number, y: numbe
   block(ctx, cx + 7, bodyTop + 2 - armLift, 3, 10, shirt);
   px(ctx, cx - 10, bodyTop + 12 + armLift, 3, 3, skin);
   px(ctx, cx + 7, bodyTop + 12 - armLift, 3, 3, skin);
+  if (c.motion === "coffee") {
+    block(ctx, cx + 8, bodyTop + 2, 6, 7, "#f2ead5");
+    px(ctx, cx + 10, bodyTop - 2 - Math.floor(frame / 18) % 2, 1, 3, "#d8edf0");
+  }
+  if (c.motion === "talking" && Math.floor(frame / 18) % 2 === 0) px(ctx, cx - 12, bodyTop - 1, 3, 8, shirt);
 
   // Head.
   const headTop = bodyTop - 14;

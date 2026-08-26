@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { playSfx } from "../audio/sfx";
+import { useMemo, useState } from "react";
+import { playSfx, setMusic } from "../audio/sfx";
 import { BALANCE } from "../data/balance";
+import { newRun } from "../engine/init";
+import { OfficeView } from "../scene/OfficeView";
 import { useGame } from "../store/useGame";
 
 export function dailySeed(date = new Date()): number {
@@ -12,72 +14,58 @@ export function Title() {
   const continueRun = useGame((store) => store.continueRun);
   const saved = useGame((store) => store.game);
   const muted = useGame((store) => store.muted);
+  const toggleMuted = useGame((store) => store.toggleMuted);
+  const musicEnabled = useGame((store) => store.musicEnabled);
+  const toggleMusic = useGame((store) => store.toggleMusic);
   const [seed, setSeed] = useState("");
-
-  const parsed = seed.trim() ? Number(seed.trim().replace(/\D/g, "")) : 0;
+  const [newOpen, setNewOpen] = useState(!saved);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const today = dailySeed();
+  const preview = useMemo(() => saved ?? newRun(today), [saved, today]);
+  const parsed = seed.trim() ? Number(seed.trim().replace(/\D/g, "")) : 0;
 
   function begin(value: number) {
     playSfx("commit", muted);
     start(value >>> 0 || Math.floor(Math.random() * 2_147_483_647));
   }
 
-  return <div className="title-shell">
-    <div className="title-grid"/>
-    <div className="title-glow"/>
-    <div className="title-inner">
-      <div className="title-copy">
-        <span className="eyebrow">A deterministic founder simulation</span>
-        <h1>Build something<br/><em>that outlives</em><br/>the hype.</h1>
-        <p>
-          You start with ${BALANCE.startingCash.toLocaleString()}, a cofounder, and an uncertain market.
-          Spend {BALANCE.baseFocus} units of attention each week to learn what people will pay for. If a company fails,
-          you return to the desk with the relationships and scars—and build the next one.
-        </p>
+  const year = Math.floor((preview.week - 1) / 52) + 1;
+  const week = ((preview.week - 1) % 52) + 1;
 
-        <div className="title-facts">
-          <div className="title-fact"><strong>∞</strong><span>career</span></div>
-          <div className="title-fact"><strong>${(BALANCE.startingCash / 1000).toFixed(0)}k</strong><span>starting cash</span></div>
-          <div className="title-fact"><strong>52</strong><span>weeks per year</span></div>
-          <div className="title-fact"><strong>0</strong><span>game-over screens</span></div>
-        </div>
-
-        <div className="seed-row">
-          <div className="seed-field">
-            <label htmlFor="seed">Seed (optional)</label>
-            <input id="seed" inputMode="numeric" placeholder="random" value={seed}
-              onChange={(event) => setSeed(event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") begin(parsed); }}/>
-          </div>
-          <button className="btn btn-ghost" onClick={() => { setSeed(String(today)); begin(today); }}>
-            Play today’s seed
-          </button>
-        </div>
-
-        <div className="title-actions">
-          <button className="btn btn-amber" onClick={() => begin(parsed)}>
-            {parsed ? `Start seed ${parsed}` : "Start a new career"} <span aria-hidden="true">→</span>
-          </button>
-          {saved && <button className="btn btn-ghost" onClick={() => { playSfx("click", muted); continueRun(); }}>
-            Continue company {saved.companyNumber} · Y{Math.floor((saved.week - 1) / 52) + 1} W{((saved.week - 1) % 52) + 1}
-          </button>}
-        </div>
-        <p className="seed-hint">Same seed, same market. Share one to compare runs against the identical hidden truth.</p>
-      </div>
-
-      <div className="title-vignette">
-        <div className="title-card">
-          <h3>The loop</h3>
-          <p>Every week you spend attention, the market answers slowly, and the answer is sometimes a lie.</p>
-          <ul>
-            <li><b>01</b><span><strong>Gather.</strong> Interviews and tests produce evidence cards. Some are misleading.</span></li>
-            <li><b>02</b><span><strong>Commit.</strong> Turn evidence into a belief. Beliefs drive conversion and churn.</span></li>
-            <li><b>03</b><span><strong>Build &amp; sell.</strong> Ship the must-have feature, price it, and find customers.</span></li>
-            <li><b>04</b><span><strong>End the week.</strong> Revenue lands, customers churn, consequences arrive.</span></li>
-          </ul>
-        </div>
-      </div>
+  return <main className="home-shell">
+    <div className="home-office" aria-hidden="true">
+      <OfficeView state={preview} moodOverride={0} onOpen={() => undefined} onHoverPerson={() => undefined} onCoffee={() => undefined}/>
     </div>
-    <p className="title-foot">VENTURE FORGE · PHASE 1 · DETERMINISTIC · NO MICROTRANSACTIONS</p>
-  </div>;
+    <div className="home-golden"/>
+
+    <section className="home-content" aria-label="Venture Forge home">
+      <header className="home-logo"><span>V</span><div><small>DESK &amp; COMPANY</small><h1>VENTURE<br/>FORGE</h1></div></header>
+      <p className="home-tagline">Build the company by walking the room. If it breaks, return to the desk and build the next one.</p>
+
+      {saved && <button className="save-card" onClick={() => { playSfx("click", muted); continueRun(); }}>
+        <span className="save-play">▶</span>
+        <div><small>Continue</small><strong>Company {saved.companyNumber}</strong><p>Y{year} W{week} · ${Math.round(saved.mrr).toLocaleString()} monthly · {saved.people.length + 1} people</p></div>
+        <b>Back to the office →</b>
+      </button>}
+
+      <div className="home-actions">
+        <button onClick={() => { setNewOpen((open) => !open); setSettingsOpen(false); }}>＋ New company</button>
+        <button onClick={() => { setSettingsOpen((open) => !open); setNewOpen(false); }}>⚙ Settings</button>
+      </div>
+
+      {newOpen && <div className="home-drawer">
+        <label htmlFor="seed">Company seed <span>optional · same seed, same market</span></label>
+        <div><input id="seed" inputMode="numeric" placeholder="random" value={seed} onChange={(event) => setSeed(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") begin(parsed); }}/><button onClick={() => begin(parsed)}>{parsed ? `Start ${parsed}` : "Start company"}</button></div>
+        <button className="daily-run" onClick={() => { setSeed(String(today)); begin(today); }}>Play today’s shared market · {today}</button>
+      </div>}
+
+      {settingsOpen && <div className="home-drawer settings-drawer">
+        <button onClick={() => { playSfx("click", muted); toggleMuted(); }}><span>Sound effects</span><b>{muted ? "Off" : "On"}</b></button>
+        <button onClick={() => { setMusic(!musicEnabled, muted); toggleMusic(); }}><span>Warm office music</span><b>{musicEnabled ? "On" : "Off"}</b></button>
+        <p>Music stays off until you turn it on. The game saves on this device.</p>
+      </div>}
+    </section>
+
+    <p className="home-foot">∞ CAREER · 52 WEEKS/YEAR · {BALANCE.baseFocus} FOUNDER ACTIONS/DAY · NO GAME OVER</p>
+  </main>;
 }

@@ -14,6 +14,11 @@ const MARGIN_BOTTOM = 20;
 export interface Point { x: number; y: number; }
 export interface View { width: number; height: number; origin: Point; }
 
+/** Whole-number canvas zoom keeps one source pixel on an exact screen grid. */
+export function integerScaleFor(paneWidth: number, paneHeight: number, viewWidth: number, viewHeight: number): number {
+  return Math.max(1, Math.floor(Math.min(paneWidth / viewWidth, paneHeight / viewHeight)));
+}
+
 /** Canvas is sized to the room; object-fit scales it up to the pane. */
 export function viewFor(cols: number, rows: number): View {
   return {

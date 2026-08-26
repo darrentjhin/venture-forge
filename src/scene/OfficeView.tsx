@@ -3,7 +3,7 @@ import { appearanceFromId } from "../engine/people";
 import { selectRoomStage, selectRunwayMood } from "../engine/selectors";
 import type { GameState, PanelId, Person, PersonMotion } from "../engine/types";
 import { findPath, hasArrived, isWalking, sendAgentTo, stepAgent, type Agent } from "./room/agents";
-import { TILE, tileFloor, toScreen, viewFor } from "./room/geometry";
+import { integerScaleFor, TILE, tileFloor, toScreen, viewFor } from "./room/geometry";
 import { paletteFor } from "./room/palette";
 import { blockedTiles, planFor } from "./room/plans";
 import { drawCharacter, drawFurniture, drawObject, drawRoomShell, drawTag, drawWallDecor, px, type ObjectHit } from "./room/sprites";
@@ -37,23 +37,49 @@ function makeAgent(person: Person, seat: { x: number; y: number }, index: number
 
 type PendingInteraction = { kind: "panel"; panel: PanelId } | { kind: "coffee" };
 
-export function OfficeView({ state, onOpen, onHoverPerson, onCoffee }: {
+export function OfficeView({ state, onOpen, onHoverPerson, onCoffee, moodOverride }: {
   state: GameState;
   onOpen: (panel: PanelId) => void;
   onHoverPerson: (person: Person | null) => void;
   onCoffee: () => void;
+  moodOverride?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const agentsRef = useRef<Agent[]>([]);
   const hitsRef = useRef<ObjectHit[]>([]);
   const pendingRef = useRef<PendingInteraction | null>(null);
   const [hoveredPanel, setHoveredPanel] = useState<PanelId | "coffee" | null>(null);
+  const [canvasScale, setCanvasScale] = useState(1);
 
   const stage = selectRoomStage(state);
-  const mood = selectRunwayMood(state);
+  const mood = moodOverride ?? selectRunwayMood(state);
   const plan = useMemo(() => planFor(stage), [stage]);
   const view = useMemo(() => viewFor(plan.cols, plan.rows), [plan]);
   const blocked = useMemo(() => blockedTiles(plan), [plan]);
+
+  const staticScene = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const p = paletteFor(mood);
+    const base = document.createElement("canvas"); base.width = view.width; base.height = view.height;
+    const baseContext = base.getContext("2d");
+    if (baseContext) {
+      baseContext.imageSmoothingEnabled = false;
+      px(baseContext, 0, 0, view.width, view.height, "#0d1119");
+      drawRoomShell(baseContext, plan.cols, plan.rows, view.origin, p);
+      drawWallDecor(baseContext, plan.cols, view.origin, p, mood, state.week);
+    }
+    const grouped = new Map<number, HTMLCanvasElement>();
+    for (const item of plan.furniture) {
+      let layer = grouped.get(item.ty);
+      if (!layer) { layer = document.createElement("canvas"); layer.width = view.width; layer.height = view.height; grouped.set(item.ty, layer); }
+      const context = layer.getContext("2d");
+      if (!context) continue;
+      context.imageSmoothingEnabled = false;
+      const { x, y } = toScreen(item.tx, item.ty, view.origin);
+      drawFurniture(context, item.kind, x, y, item.tx * 3 + item.ty, p);
+    }
+    return { base, furniture: [...grouped.entries()].map(([depth, layer]) => ({ depth, layer })) };
+  }, [plan, view, mood, state.week]);
 
   const founder = useMemo<Person>(() => ({
     id: `founder-${state.seed}`, name: "You", role: "Operations", archetype: "operator", salaryWeekly: 0,
@@ -87,21 +113,19 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee }: {
     const showTags = agentsRef.current.length <= 10;
 
     ctx.imageSmoothingEnabled = false;
-    px(ctx, 0, 0, view.width, view.height, "#0d1119");
-    drawRoomShell(ctx, plan.cols, plan.rows, origin, p);
-    drawWallDecor(ctx, plan.cols, origin, p, mood, state.week);
+    if (staticScene) ctx.drawImage(staticScene.base, 0, 0);
+    else {
+      px(ctx, 0, 0, view.width, view.height, "#0d1119");
+      drawRoomShell(ctx, plan.cols, plan.rows, origin, p);
+      drawWallDecor(ctx, plan.cols, origin, p, mood, state.week);
+    }
 
     const hits: ObjectHit[] = [];
     type Item = { depth: number; order: number; paint: () => void };
     const items: Item[] = [];
 
-    plan.furniture.forEach((item, index) => items.push({
-      depth: item.ty, order: item.kind === "rug" ? -100 : index,
-      paint: () => {
-        const { x, y } = toScreen(item.tx, item.ty, origin);
-        drawFurniture(ctx, item.kind, x, y, item.tx * 3 + item.ty, p);
-      },
-    }));
+    if (staticScene) staticScene.furniture.forEach(({ depth, layer }, index) => items.push({ depth, order: -100 + index, paint: () => ctx.drawImage(layer, 0, 0) }));
+    else plan.furniture.forEach((item, index) => items.push({ depth: item.ty, order: item.kind === "rug" ? -100 : index, paint: () => { const { x, y } = toScreen(item.tx, item.ty, origin); drawFurniture(ctx, item.kind, x, y, item.tx * 3 + item.ty, p); } }));
 
     plan.objects.forEach((object) => items.push({
       depth: object.ty, order: 500,
@@ -126,6 +150,9 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee }: {
         px(ctx, x + 12, y - 5 + lift, 10, 3, "#202638");
         px(ctx, x + 11, y + 5 + lift, 12, 8, "#171c29");
         px(ctx, x + 13, y + 8 + lift, 8, 4, "#d89b55");
+        const steam = Math.floor(frame / 24) % 3;
+        px(ctx, x + 15 + steam, y - 15 - steam * 2, 2, 4, "#d8edf0");
+        px(ctx, x + 19 - steam, y - 20 + steam, 2, 3, "#d8edf0");
         hits.push({ panel: "coffee", x: x + 4, y: y - 13, w: 26, h: 34 });
       },
     });
@@ -167,7 +194,20 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee }: {
       px(ctx, 0, 0, view.width, view.height, "#0a1420");
       ctx.globalAlpha = 1;
     }
-  }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, state.officeBeat, state.founder.jittery, metricPulse, unread]);
+  }, [plan, view, mood, hoveredPanel, state.week, state.pendingEvents.length, state.conviction, state.officeBeat, state.founder.jittery, metricPulse, unread, staticScene]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const pane = canvas?.parentElement;
+    if (!pane || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const scale = integerScaleFor(pane.clientWidth, pane.clientHeight, view.width, view.height);
+      setCanvasScale(scale);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(pane); measure();
+    return () => observer.disconnect();
+  }, [view]);
 
   // One synchronous frame, so a tab loaded in the background is never blank.
   useEffect(() => { render(0); }, [render]);
@@ -280,7 +320,7 @@ export function OfficeView({ state, onOpen, onHoverPerson, onCoffee }: {
     className="office-canvas"
     width={view.width}
     height={view.height}
-    style={{ cursor: hoveredPanel ? "pointer" : "default" }}
+    style={{ cursor: hoveredPanel ? "pointer" : "default", width: view.width * canvasScale, height: view.height * canvasScale }}
     onMouseMove={handleMove}
     onMouseLeave={() => { setHoveredPanel(null); onHoverPerson(null); }}
     onClick={handleClick}
