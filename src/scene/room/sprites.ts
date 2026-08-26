@@ -388,8 +388,6 @@ export function drawObject(
   let box = { x: sx, y: sy, w: TILE, h: TILE };
 
   if (kind === "monitor") {
-    block(ctx, sx + 1, sy + 10, TILE - 2, 16, "#8a5733");
-    px(ctx, sx + 1, sy + 10, TILE - 2, 3, "#a86c40");
     const y = sy - 2 + lift;
     block(ctx, sx + 4, y, 24, 18, "#161b28");
     px(ctx, sx + 6, y + 2, 20, 14, flash ? "#ffd88a" : "#3fd0c0");
@@ -400,8 +398,6 @@ export function drawObject(
   }
 
   if (kind === "notebook") {
-    block(ctx, sx + 1, sy + 10, TILE - 2, 16, "#8a5733");
-    px(ctx, sx + 1, sy + 10, TILE - 2, 3, "#a86c40");
     const y = sy + 11 + lift;
     block(ctx, sx + 7, y, 18, 13, "#f2ead5");
     px(ctx, sx + 7, y, 18, 3, "#d6483c");
@@ -410,8 +406,6 @@ export function drawObject(
   }
 
   if (kind === "phone") {
-    block(ctx, sx + 1, sy + 10, TILE - 2, 16, "#8a5733");
-    px(ctx, sx + 1, sy + 10, TILE - 2, 3, "#a86c40");
     const y = sy + 2 + lift;
     block(ctx, sx + 11, y, 11, 18, "#1c2130");
     px(ctx, sx + 12, y + 2, 9, 13, flash ? "#ffd88a" : "#7fd4d6");

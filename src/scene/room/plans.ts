@@ -42,27 +42,31 @@ function ownRoom(): RoomPlan {
   return {
     cols: 11, rows: 5,
     furniture: [
-      { kind: "desk", tx: 4, ty: 2 }, { kind: "chair", tx: 4, ty: 1 },
-      { kind: "desk", tx: 6, ty: 2 }, { kind: "chair", tx: 6, ty: 1 },
+      // Your workstation: three tiles of desk with the monitor centred, the
+      // notebook to your left and the phone to your right. The cofounder gets
+      // their own desk rather than hosting half of your tools.
+      { kind: "desk", tx: 3, ty: 2 }, { kind: "desk", tx: 4, ty: 2 }, { kind: "desk", tx: 5, ty: 2 },
+      { kind: "chair", tx: 4, ty: 1 },
+      { kind: "desk", tx: 7, ty: 2 }, { kind: "chair", tx: 7, ty: 1 },
       { kind: "rug", tx: 4, ty: 3 }, { kind: "rug", tx: 5, ty: 3 }, { kind: "rug", tx: 6, ty: 3 },
       { kind: "bed", tx: 1, ty: 3 }, { kind: "bed", tx: 2, ty: 3 },
-      { kind: "wardrobe", tx: 0, ty: 1 }, { kind: "books", tx: 3, ty: 3 },
+      { kind: "wardrobe", tx: 0, ty: 1 }, { kind: "books", tx: 2, ty: 3 },
       { kind: "shelf", tx: 9, ty: 1 }, { kind: "shelf", tx: 10, ty: 1 },
-      { kind: "boxes", tx: 8, ty: 1 }, { kind: "easel", tx: 2, ty: 1 },
+      { kind: "boxes", tx: 8, ty: 1 }, { kind: "easel", tx: 1, ty: 1 },
       { kind: "beanbag", tx: 9, ty: 3 }, { kind: "plant", tx: 10, ty: 4 },
       { kind: "plant", tx: 0, ty: 4 }, { kind: "bin", tx: 7, ty: 4 },
       { kind: "lamp", tx: 3, ty: 1 }, { kind: "counter", tx: 8, ty: 4 },
       { kind: "books", tx: 1, ty: 4 },
     ],
-    seats: [{ x: 4, y: 1 }, { x: 6, y: 1 }],
+    seats: [{ x: 4, y: 1 }, { x: 7, y: 1 }],
     kitchen: [{ x: 8, y: 3 }],
     coffeeMachine: { x: 8, y: 4 },
     meeting: [{ x: 5, y: 3 }],
     wander: [{ x: 7, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 4 }, { x: 2, y: 2 }, { x: 6, y: 4 }],
     objects: [
       { panel: "metrics", kind: "monitor", tx: 4, ty: 2 },
-      { panel: "notebook", kind: "notebook", tx: 6, ty: 2 },
-      { panel: "inbox", kind: "phone", tx: 2, ty: 2 },
+      { panel: "notebook", kind: "notebook", tx: 3, ty: 2 },
+      { panel: "inbox", kind: "phone", tx: 5, ty: 2 },
       { panel: "roadmap", kind: "whiteboard", tx: 7, ty: -1.25 },
       { panel: "team", kind: "door", tx: 0, ty: -1.5 },
       { panel: "capital", kind: "safe", tx: 9, ty: 4 },
@@ -76,6 +80,9 @@ function sharedKitchen(): RoomPlan {
     cols: 13, rows: 5,
     furniture: [
       ...bank.furniture,
+      // Two extra desk tiles either side of the founder's seat, so their tools
+      // sit on one workstation instead of on other people's desks.
+      { kind: "desk", tx: 3, ty: 2 }, { kind: "desk", tx: 5, ty: 2 },
       { kind: "counter", tx: 0, ty: 1 }, { kind: "counter", tx: 1, ty: 1 },
       { kind: "counter", tx: 2, ty: 1 }, { kind: "cooler", tx: 12, ty: 1 },
       { kind: "sofa", tx: 10, ty: 4 }, { kind: "sofa", tx: 11, ty: 4 },
@@ -92,8 +99,8 @@ function sharedKitchen(): RoomPlan {
     wander: [{ x: 3, y: 3 }, { x: 8, y: 3 }, { x: 7, y: 4 }, { x: 10, y: 2 }, { x: 4, y: 4 }],
     objects: [
       { panel: "metrics", kind: "monitor", tx: 4, ty: 2 },
-      { panel: "notebook", kind: "notebook", tx: 6, ty: 2 },
-      { panel: "inbox", kind: "phone", tx: 8, ty: 2 },
+      { panel: "notebook", kind: "notebook", tx: 3, ty: 2 },
+      { panel: "inbox", kind: "phone", tx: 5, ty: 2 },
       { panel: "roadmap", kind: "whiteboard", tx: 8, ty: -1.25 },
       { panel: "team", kind: "door", tx: 0, ty: -1.5 },
       { panel: "capital", kind: "safe", tx: 10, ty: 1 },
@@ -130,6 +137,9 @@ function openPlan(stage: "coworking" | "office" | "floor" | "hq" | "downsized"):
   furniture.push({ kind: "rug", tx: 1, ty: bottom }, { kind: "rug", tx: 2, ty: bottom });
   furniture.push({ kind: "lamp", tx: 0, ty: bottom - 2 });
 
+  // The founder's workstation spreads either side of their seat.
+  furniture.push({ kind: "desk", tx: 1, ty: 2 }, { kind: "desk", tx: 3, ty: 2 });
+
   // Dressing that breaks up a grid of identical desks.
   furniture.push({ kind: "printer", tx: right - 3, ty: 1 }, { kind: "boxes", tx: right - 4, ty: bottom });
   furniture.push({ kind: "beanbag", tx: right - 2, ty: bottom - 2 }, { kind: "books", tx: 0, ty: bottom - 2 });
@@ -154,8 +164,8 @@ function openPlan(stage: "coworking" | "office" | "floor" | "hq" | "downsized"):
     wander,
     objects: [
       { panel: "metrics", kind: "monitor", tx: 2, ty: 2 },
-      { panel: "notebook", kind: "notebook", tx: 4, ty: 2 },
-      { panel: "inbox", kind: "phone", tx: 6, ty: 2 },
+      { panel: "notebook", kind: "notebook", tx: 1, ty: 2 },
+      { panel: "inbox", kind: "phone", tx: 3, ty: 2 },
       { panel: "roadmap", kind: "whiteboard", tx: Math.min(spec.cols - 4, 9), ty: -1.25 },
       { panel: "team", kind: "door", tx: 0, ty: -1.5 },
       { panel: "capital", kind: "safe", tx: right - 1, ty: bottom - 3 },

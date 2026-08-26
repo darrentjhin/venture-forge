@@ -66,6 +66,6 @@ export function Title() {
       </div>}
     </section>
 
-    <p className="home-foot">∞ CAREER · 52 WEEKS/YEAR · {BALANCE.baseFocus} FOUNDER ACTIONS/DAY · NO GAME OVER</p>
+    <p className="home-foot">∞ CAREER · 52 WEEKS/YEAR · {BALANCE.baseFocus} FOUNDER ACTIONS/DAY · NO GAME OVER · BUILD {__BUILD_STAMP__}</p>
   </main>;
 }

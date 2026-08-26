@@ -135,4 +135,30 @@ describe("office rooms", () => {
       }
     }
   });
+
+  it("stands every desk-top object on an actual desk", () => {
+    // Objects stopped drawing their own desk slab, so the furniture underneath
+    // has to be there or the monitor floats.
+    const deskTop = ["monitor", "notebook", "phone"];
+    for (const stage of Object.keys(SEATS_REQUIRED) as (keyof typeof SEATS_REQUIRED)[]) {
+      const plan = planFor(stage);
+      const desks = new Set(plan.furniture.filter((item) => item.kind === "desk").map((item) => `${item.tx},${item.ty}`));
+      for (const object of plan.objects) {
+        if (!deskTop.includes(object.kind)) continue;
+        expect(desks.has(`${object.tx},${object.ty}`), `${stage}: ${object.kind} has no desk under it`).toBe(true);
+      }
+    }
+  });
+
+  it("puts the founder's tools within reach of the founder's seat", () => {
+    for (const stage of Object.keys(SEATS_REQUIRED) as (keyof typeof SEATS_REQUIRED)[]) {
+      const plan = planFor(stage);
+      const seat = plan.seats[0];
+      for (const object of plan.objects) {
+        if (!["monitor", "notebook", "phone"].includes(object.kind)) continue;
+        const reach = Math.abs(object.tx - seat.x) + Math.abs(object.ty - seat.y);
+        expect(reach, `${stage}: ${object.kind} is ${reach} tiles from your seat`).toBeLessThanOrEqual(3);
+      }
+    }
+  });
 });
